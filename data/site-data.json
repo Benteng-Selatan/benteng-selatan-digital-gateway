@@ -1,0 +1,257 @@
+{
+  "site": {
+    "name": "Benteng Selatan Digital Gateway",
+    "kelurahan": "Kelurahan Benteng Selatan",
+    "tagline": "Satu pintu informasi layanan, potensi, dan kehidupan lokal.",
+    "description": "Portal informasi awal Kelurahan Benteng Selatan untuk membantu masyarakat menemukan informasi layanan publik, UMKM, kesejahteraan sosial, fasilitas wilayah, serta kearifan lokal.",
+    "heroImage": "/images/hero-benteng.svg",
+    "primaryCtaLabel": "Lihat Layanan Publik",
+    "primaryCtaHref": "/layanan",
+    "secondaryCtaLabel": "Jelajahi Peta Digital",
+    "secondaryCtaHref": "/peta"
+  },
+  "profile": {
+    "heading": "Mengenal Benteng Selatan",
+    "description": "Halaman ini disiapkan sebagai profil singkat wilayah. Narasi final dapat diperbarui melalui CMS setelah diverifikasi bersama perangkat kelurahan.",
+    "communityOverview": "Benteng Selatan memiliki masyarakat dengan aktivitas sosial dan ekonomi yang beragam. Konten ini masih berupa teks awal dan harus disesuaikan berdasarkan data lapangan terverifikasi.",
+    "potentials": [
+      "Potensi pangan dan produk lokal",
+      "Pengembangan UMKM masyarakat",
+      "Potensi pertanian dan kelautan",
+      "Kearifan lokal dan kegiatan masyarakat"
+    ],
+    "facilities": [
+      "Kantor kelurahan",
+      "Fasilitas pendidikan",
+      "Fasilitas kesehatan",
+      "Fasilitas umum masyarakat"
+    ],
+    "leaderName": "[Nama lurah belum diisi]",
+    "governmentDescription": "Informasi pemerintahan kelurahan dapat ditambahkan setelah memperoleh data resmi.",
+    "image": "/images/profile-placeholder.svg"
+  },
+  "contact": {
+    "address": "[Alamat kantor kelurahan belum diisi]",
+    "serviceHours": "[Jam pelayanan belum diisi]",
+    "phone": "",
+    "email": "",
+    "whatsapp": "",
+    "instagram": "",
+    "facebook": "",
+    "mapsUrl": ""
+  },
+  "services": [
+    {
+      "id": "layanan-001",
+      "slug": "surat-keterangan-domisili",
+      "name": "Surat Keterangan Domisili",
+      "shortDescription": "Informasi awal mengenai layanan surat keterangan domisili. Persyaratan resmi perlu diverifikasi oleh kelurahan.",
+      "requirements": [
+        "Data persyaratan belum diverifikasi",
+        "Perbarui daftar dokumen melalui CMS sebelum dipublikasikan sebagai informasi resmi"
+      ],
+      "steps": [
+        "Siapkan dokumen sesuai informasi resmi kelurahan",
+        "Datang ke lokasi pelayanan",
+        "Ikuti pemeriksaan dan proses administrasi"
+      ],
+      "serviceHours": "Mengikuti jam pelayanan kantor kelurahan",
+      "location": "Kantor Kelurahan Benteng Selatan",
+      "contact": "Kontak resmi belum tersedia",
+      "note": "Website hanya menyediakan informasi dan tidak menerima pengajuan surat secara daring.",
+      "status": "published"
+    },
+    {
+      "id": "layanan-002",
+      "slug": "surat-keterangan-usaha",
+      "name": "Surat Keterangan Usaha",
+      "shortDescription": "Informasi awal layanan surat keterangan usaha bagi masyarakat dan pelaku UMKM.",
+      "requirements": [
+        "Data persyaratan belum diverifikasi",
+        "Konfirmasi kepada kantor kelurahan sebelum mengajukan layanan"
+      ],
+      "steps": [
+        "Periksa informasi persyaratan",
+        "Siapkan berkas",
+        "Datang ke kantor kelurahan"
+      ],
+      "serviceHours": "Mengikuti jam pelayanan kantor kelurahan",
+      "location": "Kantor Kelurahan Benteng Selatan",
+      "contact": "Kontak resmi belum tersedia",
+      "note": "Konten contoh untuk kebutuhan pengembangan lokal.",
+      "status": "published"
+    },
+    {
+      "id": "layanan-003",
+      "slug": "informasi-bantuan-sosial",
+      "name": "Informasi Bantuan Sosial",
+      "shortDescription": "Rujukan awal untuk memperoleh informasi umum mengenai layanan sosial dan bantuan yang tersedia.",
+      "requirements": [
+        "Persyaratan mengikuti program yang berlaku",
+        "Data individu tidak ditampilkan pada website"
+      ],
+      "steps": [
+        "Baca informasi program",
+        "Hubungi kanal rujukan resmi",
+        "Ikuti proses verifikasi oleh pihak berwenang"
+      ],
+      "serviceHours": "Mengikuti jam pelayanan kantor kelurahan",
+      "location": "Kantor Kelurahan Benteng Selatan",
+      "contact": "Kontak rujukan belum tersedia",
+      "note": "Tidak ada pendaftaran bantuan secara daring pada versi awal.",
+      "status": "published"
+    }
+  ],
+  "socialStatistics": [
+    {
+      "id": "sosial-001",
+      "category": "Penerima PKH",
+      "value": 0,
+      "description": "Angka belum diisi. Masukkan data agregat yang telah diverifikasi.",
+      "year": "",
+      "source": "",
+      "status": "published"
+    },
+    {
+      "id": "sosial-002",
+      "category": "Penerima BPNT",
+      "value": 0,
+      "description": "Angka belum diisi. Masukkan data agregat yang telah diverifikasi.",
+      "year": "",
+      "source": "",
+      "status": "published"
+    },
+    {
+      "id": "sosial-003",
+      "category": "Bantuan Lainnya",
+      "value": 0,
+      "description": "Angka belum diisi. Masukkan data agregat yang telah diverifikasi.",
+      "year": "",
+      "source": "",
+      "status": "published"
+    }
+  ],
+  "socialContent": {
+    "intro": "Informasi kesejahteraan sosial ditampilkan dalam bentuk agregat agar masyarakat dapat memperoleh gambaran umum tanpa membuka data pribadi warga.",
+    "accessBarriers": [
+      "Ringkasan hambatan akses layanan belum diisi",
+      "Tambahkan hanya narasi anonim yang telah diverifikasi"
+    ],
+    "recommendations": [
+      "Perbarui kanal informasi layanan sosial secara berkala",
+      "Gunakan bahasa yang sederhana dan mudah dipahami masyarakat"
+    ],
+    "serviceFlow": [
+      "Cari informasi program atau layanan yang dibutuhkan",
+      "Hubungi kanal rujukan resmi",
+      "Lengkapi proses verifikasi sesuai ketentuan pihak berwenang"
+    ],
+    "referralContact": "[Kontak rujukan layanan sosial belum diisi]",
+    "privacyNote": "Data yang ditampilkan merupakan data agregat untuk kebutuhan informasi publik. Data individu tidak ditampilkan guna menjaga kerahasiaan dan perlindungan data pribadi warga."
+  },
+  "umkm": [
+    {
+      "id": "umkm-001",
+      "slug": "umkm-contoh-produk-lokal",
+      "name": "UMKM Contoh Produk Lokal",
+      "category": "Produk Lokal",
+      "featuredProduct": "Produk unggulan belum diisi",
+      "description": "Kartu ini merupakan contoh tampilan direktori UMKM. Ganti dengan data usaha yang telah mendapat persetujuan pemilik.",
+      "image": "/images/umkm-placeholder.svg",
+      "publicContact": "",
+      "contactApproved": false,
+      "generalLocation": "Benteng Selatan",
+      "instagram": "",
+      "marketplace": "",
+      "status": "published"
+    },
+    {
+      "id": "umkm-002",
+      "slug": "umkm-contoh-pangan",
+      "name": "UMKM Contoh Pangan",
+      "category": "Makanan dan Minuman",
+      "featuredProduct": "Produk pangan lokal",
+      "description": "Contoh entri untuk memperlihatkan filter kategori, halaman detail, dan tombol kontak.",
+      "image": "/images/umkm-food-placeholder.svg",
+      "publicContact": "",
+      "contactApproved": false,
+      "generalLocation": "Benteng Selatan",
+      "instagram": "",
+      "marketplace": "",
+      "status": "published"
+    }
+  ],
+  "mapLocations": [
+    {
+      "id": "peta-001",
+      "name": "Kantor Kelurahan Benteng Selatan",
+      "category": "Kantor Kelurahan",
+      "description": "Tambahkan koordinat resmi melalui CMS untuk menampilkan peta interaktif.",
+      "latitude": -6.125763568463824,
+      "longitude": 120.45830758872175,
+      "generalLocation": "Benteng Selatan",
+      "mapsUrl": "https://maps.app.goo.gl/2qX7rcUukGPFbBMr5",
+      "status": "published"
+    },
+    {
+      "id": "peta-002",
+      "name": "Fasilitas Kesehatan Contoh",
+      "category": "Fasilitas Kesehatan",
+      "description": "Data contoh. Ganti dengan fasilitas terverifikasi.",
+      "latitude": null,
+      "longitude": null,
+      "generalLocation": "Benteng Selatan",
+      "mapsUrl": "",
+      "status": "published"
+    },
+    {
+      "id": "peta-003",
+      "name": "Sentra UMKM Contoh",
+      "category": "UMKM",
+      "description": "Gunakan lokasi umum untuk usaha rumahan, bukan titik rumah yang terlalu presisi.",
+      "latitude": null,
+      "longitude": null,
+      "generalLocation": "Benteng Selatan",
+      "mapsUrl": "",
+      "status": "published"
+    },
+    {
+      "id": "peta-mrqljm73-t0od",
+      "name": "Lokasi Baru",
+      "category": "Fasilitas Umum",
+      "description": "",
+      "latitude": null,
+      "longitude": null,
+      "generalLocation": "Benteng Selatan",
+      "mapsUrl": "",
+      "status": "draft"
+    }
+  ],
+  "stories": [
+    {
+      "id": "wisata-001",
+      "slug": "cerita-lokal-benteng-selatan",
+      "title": "Cerita Lokal Benteng Selatan",
+      "category": "Kearifan Lokal",
+      "excerpt": "Ruang untuk mendokumentasikan cerita, kebiasaan, dan nilai lokal yang telah diverifikasi.",
+      "content": "Tuliskan cerita lokal berdasarkan sumber yang dapat dipertanggungjawabkan. Hindari narasi personal yang dapat mengarah pada identitas warga dan jangan memuat klaim sejarah yang belum diverifikasi.",
+      "image": "/images/story-placeholder.svg",
+      "generalLocation": "Benteng Selatan",
+      "source": "Sumber belum diisi",
+      "status": "published"
+    },
+    {
+      "id": "wisata-002",
+      "slug": "potensi-wisata-lokal",
+      "title": "Potensi Wisata Lokal",
+      "category": "Potensi Wisata",
+      "excerpt": "Contoh artikel untuk menunjukkan tampilan konten wisata dan dokumentasi wilayah.",
+      "content": "Konten ini masih berupa contoh. Perbarui dengan hasil pendataan dan dokumentasi yang telah mendapat izin publikasi.",
+      "image": "/images/tourism-placeholder.svg",
+      "generalLocation": "Benteng Selatan",
+      "source": "Sumber belum diisi",
+      "status": "published"
+    }
+  ],
+  "updatedAt": "2026-07-18T16:56:56.652Z"
+}

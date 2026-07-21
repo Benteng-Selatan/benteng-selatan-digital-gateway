@@ -1,0 +1,18 @@
+BENTENG SELATAN DIGITAL GATEWAY - MULAI DI SINI
+
+1. Pastikan Node.js 20.9 atau lebih baru terpasang.
+2. Buka terminal pada folder proyek.
+3. Jalankan: npm install
+4. Salin .env.example menjadi .env.local
+5. Ubah CMS_PASSWORD dan CMS_SESSION_SECRET.
+6. Jalankan: npm run dev
+7. Buka http://localhost:3000
+8. CMS: http://localhost:3000/admin/login
+
+Akun lokal bawaan jika .env.local belum dibuat:
+Username: admin
+Password: admin123
+
+Data CMS tersimpan di data/site-data.json.
+Gambar upload tersimpan di public/uploads.
+Baca README.md dan docs/PROJECT_STATUS.md sebelum pengembangan lanjutan.
