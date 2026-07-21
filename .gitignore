@@ -14,3 +14,7 @@ data/*.tmp
 .env*
 
 !.env.example
+
+.vercel
+
+tsconfig.tsbuildinfo
