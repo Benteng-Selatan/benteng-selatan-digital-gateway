@@ -3,31 +3,58 @@ import { config } from "dotenv";
 
 config({ path: ".env.local" });
 
-const databaseUrl = process.env.DATABASE_URL_UNPOOLED || process.env.DATABASE_URL;
-if (!databaseUrl) throw new Error("DATABASE_URL_UNPOOLED atau DATABASE_URL belum tersedia.");
+async function main() {
+  const databaseUrl =
+    process.env.DATABASE_URL_UNPOOLED || process.env.DATABASE_URL;
 
-const sql = neon(databaseUrl);
-const requiredTables = [
-  "cms_documents",
-  "citizen_users",
-  "service_requests",
-  "service_request_messages",
-  "service_request_history",
-  "content_submissions",
-];
+  if (!databaseUrl) {
+    throw new Error(
+      "DATABASE_URL_UNPOOLED atau DATABASE_URL belum tersedia.",
+    );
+  }
 
-const rows = await sql`
-  select table_name
-  from information_schema.tables
-  where table_schema = 'public'
-`;
-const available = new Set(rows.map((row) => String(row.table_name)));
-const missing = requiredTables.filter((table) => !available.has(table));
+  const sql = neon(databaseUrl);
 
-if (missing.length) {
-  console.error(`Schema belum lengkap. Tabel yang belum ada: ${missing.join(", ")}`);
-  process.exitCode = 1;
-} else {
+  const requiredTables = [
+    "cms_documents",
+    "citizen_users",
+    "service_requests",
+    "service_request_messages",
+    "service_request_history",
+    "content_submissions",
+  ];
+
+  const rows = await sql`
+    select table_name
+    from information_schema.tables
+    where table_schema = 'public'
+  `;
+
+  const available = new Set(
+    rows.map((row) => String(row.table_name)),
+  );
+
+  const missing = requiredTables.filter(
+    (table) => !available.has(table),
+  );
+
+  if (missing.length > 0) {
+    console.error(
+      `Schema belum lengkap. Tabel yang belum ada: ${missing.join(", ")}`,
+    );
+    process.exitCode = 1;
+    return;
+  }
+
   console.log("Portal schema: OK");
-  for (const table of requiredTables) console.log(`- ${table}`);
+
+  for (const table of requiredTables) {
+    console.log(`- ${table}`);
+  }
 }
+
+main().catch((error) => {
+  console.error("Pemeriksaan schema gagal:");
+  console.error(error);
+  process.exitCode = 1;
+});
