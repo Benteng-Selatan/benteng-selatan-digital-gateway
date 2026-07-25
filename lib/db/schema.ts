@@ -1,6 +1,7 @@
 import {
   boolean,
   index,
+  integer,
   jsonb,
   pgTable,
   text,
@@ -56,6 +57,7 @@ export const serviceRequests = pgTable(
     formData: jsonb("form_data").$type<Record<string, string>>().notNull(),
     citizenNote: text("citizen_note").notNull().default(""),
     assignedTo: text("assigned_to").notNull().default(""),
+    publicNote: text("public_note").notNull().default(""),
     staffNote: text("staff_note").notNull().default(""),
     submittedAt: timestamp("submitted_at", { withTimezone: true, mode: "date" })
       .defaultNow()
@@ -100,6 +102,7 @@ export const serviceRequestHistory = pgTable(
     previousStatus: text("previous_status").notNull(),
     newStatus: text("new_status").notNull(),
     changedBy: text("changed_by").notNull(),
+    publicNote: text("public_note").notNull().default(""),
     note: text("note").notNull().default(""),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "date" })
       .defaultNow()
@@ -134,4 +137,19 @@ export const contentSubmissions = pgTable(
     index("content_submissions_citizen_idx").on(table.citizenId),
     index("content_submissions_status_idx").on(table.status),
   ],
+);
+
+
+export const rateLimitBuckets = pgTable(
+  "rate_limit_buckets",
+  {
+    key: text("key").primaryKey(),
+    count: integer("count").notNull().default(0),
+    windowStartedAt: timestamp("window_started_at", { withTimezone: true, mode: "date" })
+      .defaultNow()
+      .notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true, mode: "date" })
+      .notNull(),
+  },
+  (table) => [index("rate_limit_buckets_expires_idx").on(table.expiresAt)],
 );

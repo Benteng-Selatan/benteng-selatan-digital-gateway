@@ -1,18 +1,24 @@
 BENTENG SELATAN DIGITAL GATEWAY - MULAI DI SINI
 
-1. Pastikan Node.js 20.9 atau lebih baru terpasang.
+1. Pastikan Node.js 22 terpasang.
 2. Buka terminal pada folder proyek.
-3. Jalankan: npm install
-4. Salin .env.example menjadi .env.local
-5. Ubah CMS_PASSWORD dan CMS_SESSION_SECRET.
-6. Jalankan: npm run dev
-7. Buka http://localhost:3000
-8. CMS: http://localhost:3000/admin/login
+3. Jalankan: npm ci
+4. Salin .env.example menjadi .env.local dan isi seluruh variabel wajib.
+5. Gunakan nilai berbeda minimal 32 karakter untuk CMS_SESSION_SECRET,
+   CITIZEN_SESSION_SECRET, dan CITIZEN_DATA_ENCRYPTION_KEY.
+6. Jalankan perubahan schema: npm run db:push
+7. Verifikasi schema: npm run db:check-portal
+8. Jalankan: npm run dev
+9. Buka http://localhost:3000
+10. CMS: http://localhost:3000/admin/login
+11. Operasional petugas: http://localhost:3000/admin/operasional
 
-Akun lokal bawaan jika .env.local belum dibuat:
-Username: admin
-Password: admin123
+Pada development, fallback akun CMS adalah admin/admin123. Fallback ini tidak
+berlaku pada production; environment production wajib diisi.
 
-Data CMS tersimpan di data/site-data.json.
-Gambar upload tersimpan di public/uploads.
-Baca README.md dan docs/PROJECT_STATUS.md sebelum pengembangan lanjutan.
+Konten CMS tersimpan di PostgreSQL pada tabel cms_documents.
+Data layanan warga tersimpan pada tabel portal relasional.
+Gambar upload tersimpan di Vercel Blob dan memerlukan BLOB_READ_WRITE_TOKEN.
+File data/site-data.seed.json hanya digunakan sebagai seed awal.
+
+Baca README.md dan docs/HIGH_PRIORITY_HARDENING.md sebelum deployment.

@@ -1,5 +1,6 @@
 import { isAuthenticated } from "@/lib/auth";
-import { getStaffRequest, updateStaffRequest } from "@/lib/portal";
+import { ConcurrentUpdateError, getStaffRequest, updateStaffRequest } from "@/lib/portal";
+import { sameOriginErrorResponse } from "@/lib/request-security";
 
 export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
   if (!(await isAuthenticated())) return Response.json({ message: "Tidak terautentikasi." }, { status: 401 });
@@ -10,6 +11,8 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
 }
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const originError = sameOriginErrorResponse(request);
+  if (originError) return originError;
   if (!(await isAuthenticated())) return Response.json({ message: "Tidak terautentikasi." }, { status: 401 });
   try {
     const payload = await request.json().catch(() => null) as Record<string, unknown> | null;
@@ -18,6 +21,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     await updateStaffRequest(id, payload, process.env.CMS_USERNAME || "Petugas Kelurahan");
     return Response.json({ ok: true });
   } catch (error) {
-    return Response.json({ message: error instanceof Error ? error.message : "Pembaruan gagal." }, { status: 400 });
+    const status = error instanceof ConcurrentUpdateError ? 409 : 400;
+    return Response.json({ message: error instanceof Error ? error.message : "Pembaruan gagal." }, { status });
   }
 }

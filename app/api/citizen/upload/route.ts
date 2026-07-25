@@ -1,34 +1,49 @@
 import { put } from "@vercel/blob";
-import { extname } from "node:path";
+
+import { validateAndSanitizeImage } from "@/lib/image-upload";
 import { getCurrentCitizen } from "@/lib/portal";
-
-const allowedTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
-const MAX_BYTES = 4 * 1024 * 1024;
-
-function safeName(filename: string): string {
-  const extension = extname(filename).toLowerCase();
-  return filename.replace(extension, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "").slice(0, 60) || "gambar";
-}
+import { enforceRateLimit, RateLimitError, rateLimitResponse } from "@/lib/rate-limit";
+import { sameOriginErrorResponse } from "@/lib/request-security";
 
 export async function POST(request: Request) {
+  const originError = sameOriginErrorResponse(request);
+  if (originError) return originError;
   const citizen = await getCurrentCitizen();
   if (!citizen) return Response.json({ message: "Tidak terautentikasi." }, { status: 401 });
+
   try {
+    await enforceRateLimit({
+      scope: "citizen-upload",
+      identifier: citizen.id,
+      limit: 20,
+      windowSeconds: 60 * 60,
+    });
+
     const data = await request.formData();
     const file = data.get("file");
     if (!(file instanceof File)) throw new Error("File gambar tidak ditemukan.");
-    if (!allowedTypes.has(file.type)) throw new Error("Format harus JPG, PNG, atau WEBP.");
-    if (file.size <= 0 || file.size > MAX_BYTES) throw new Error("Ukuran gambar harus di antara 1 byte dan 4 MB.");
+
+    const image = await validateAndSanitizeImage(file);
     const token = process.env.BLOB_READ_WRITE_TOKEN;
     if (!token) throw new Error("Penyimpanan gambar belum dikonfigurasi.");
-    const extension = extname(file.name).toLowerCase() || (file.type === "image/png" ? ".png" : file.type === "image/webp" ? ".webp" : ".jpg");
-    const blob = await put(`submissions/${new Date().getFullYear()}/${citizen.id}/${Date.now()}-${safeName(file.name)}${extension}`, file, {
+
+    const body = new Blob([new Uint8Array(image.buffer)], { type: image.contentType });
+    const pathname = `submissions/${new Date().getFullYear()}/${citizen.id}/${Date.now()}-${image.safeBaseName}${image.extension}`;
+    const blob = await put(pathname, body, {
       access: "public",
       addRandomSuffix: true,
       token,
     });
-    return Response.json({ url: blob.url });
+
+    return Response.json({
+      url: blob.url,
+      contentType: image.contentType,
+      size: image.buffer.length,
+      width: image.width,
+      height: image.height,
+    });
   } catch (error) {
+    if (error instanceof RateLimitError) return rateLimitResponse(error);
     return Response.json({ message: error instanceof Error ? error.message : "Upload gagal." }, { status: 400 });
   }
 }

@@ -1,8 +1,11 @@
 import { revalidatePath } from "next/cache";
 import { isAuthenticated } from "@/lib/auth";
-import { updateStaffSubmission } from "@/lib/portal";
+import { ConcurrentUpdateError, updateStaffSubmission } from "@/lib/portal";
+import { sameOriginErrorResponse } from "@/lib/request-security";
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const originError = sameOriginErrorResponse(request);
+  if (originError) return originError;
   if (!(await isAuthenticated())) return Response.json({ message: "Tidak terautentikasi." }, { status: 401 });
   try {
     const payload = await request.json().catch(() => null) as Record<string, unknown> | null;
@@ -12,6 +15,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     revalidatePath("/", "layout");
     return Response.json({ ok: true });
   } catch (error) {
-    return Response.json({ message: error instanceof Error ? error.message : "Pembaruan gagal." }, { status: 400 });
+    const status = error instanceof ConcurrentUpdateError ? 409 : 400;
+    return Response.json({ message: error instanceof Error ? error.message : "Pembaruan gagal." }, { status });
   }
 }

@@ -11,9 +11,12 @@ export interface CitizenSession {
 }
 
 function getSecret(): string {
-  const value = process.env.CITIZEN_SESSION_SECRET || process.env.CMS_SESSION_SECRET;
+  const value = process.env.CITIZEN_SESSION_SECRET;
   if (!value && process.env.NODE_ENV === "production") {
-    throw new Error("CITIZEN_SESSION_SECRET atau CMS_SESSION_SECRET wajib tersedia di production.");
+    throw new Error("CITIZEN_SESSION_SECRET wajib tersedia di production.");
+  }
+  if (value && process.env.NODE_ENV === "production" && value.length < 32) {
+    throw new Error("CITIZEN_SESSION_SECRET minimal 32 karakter di production.");
   }
   return value || "development-citizen-session-secret";
 }

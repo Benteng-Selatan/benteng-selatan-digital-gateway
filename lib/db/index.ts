@@ -11,8 +11,8 @@ if (!databaseUrl) {
   );
 }
 
-const sql = neon(databaseUrl);
+export const sqlClient = neon(databaseUrl);
 
-export const db = drizzle(sql, {
+export const db = drizzle(sqlClient, {
   schema,
 });

@@ -31,6 +31,27 @@ export const REQUEST_STATUS_LABELS: Record<ServiceRequestStatus, string> = {
   completed: "Selesai",
 };
 
+const REQUEST_STATUS_TRANSITIONS: Record<ServiceRequestStatus, readonly ServiceRequestStatus[]> = {
+  submitted: ["under_review", "rejected"],
+  under_review: ["revision_required", "verified", "rejected"],
+  revision_required: ["under_review", "rejected"],
+  verified: ["revision_required", "approved", "rejected"],
+  approved: ["completed"],
+  rejected: ["under_review"],
+  completed: [],
+};
+
+export function getAllowedRequestStatuses(current: ServiceRequestStatus): ServiceRequestStatus[] {
+  return [current, ...REQUEST_STATUS_TRANSITIONS[current]];
+}
+
+export function requestStatusTransitionIsAllowed(
+  current: ServiceRequestStatus,
+  next: ServiceRequestStatus,
+): boolean {
+  return current === next || REQUEST_STATUS_TRANSITIONS[current].includes(next);
+}
+
 export const CONTRIBUTION_TYPES = ["umkm", "tourism", "map"] as const;
 export type ContributionType = (typeof CONTRIBUTION_TYPES)[number];
 
@@ -58,6 +79,26 @@ export const SUBMISSION_STATUS_LABELS: Record<SubmissionStatus, string> = {
   published: "Sudah diterbitkan",
   rejected: "Ditolak",
 };
+
+const SUBMISSION_STATUS_TRANSITIONS: Record<SubmissionStatus, readonly SubmissionStatus[]> = {
+  submitted: ["under_review", "rejected"],
+  under_review: ["revision_required", "approved", "rejected"],
+  revision_required: ["under_review", "rejected"],
+  approved: ["published", "revision_required", "rejected"],
+  published: ["approved", "revision_required", "rejected"],
+  rejected: ["under_review"],
+};
+
+export function getAllowedSubmissionStatuses(current: SubmissionStatus): SubmissionStatus[] {
+  return [current, ...SUBMISSION_STATUS_TRANSITIONS[current]];
+}
+
+export function submissionStatusTransitionIsAllowed(
+  current: SubmissionStatus,
+  next: SubmissionStatus,
+): boolean {
+  return current === next || SUBMISSION_STATUS_TRANSITIONS[current].includes(next);
+}
 
 export interface PublicCitizen {
   id: string;

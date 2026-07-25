@@ -2,8 +2,8 @@ import { randomUUID } from "node:crypto";
 import { and, desc, eq } from "drizzle-orm";
 
 import { getCitizenSession } from "@/lib/citizen-auth";
-import { getSiteData, writeSiteData } from "@/lib/cms";
-import { db } from "@/lib/db";
+import { getSiteDocument } from "@/lib/cms";
+import { db, sqlClient } from "@/lib/db";
 import {
   citizenUsers,
   contentSubmissions,
@@ -16,12 +16,21 @@ import {
   type ContributionType,
   PILOT_SERVICE,
   REQUEST_STATUSES,
+  requestStatusTransitionIsAllowed,
   type ServiceRequestStatus,
   SUBMISSION_STATUSES,
+  submissionStatusTransitionIsAllowed,
   type SubmissionStatus,
 } from "@/lib/portal-types";
 import { decryptSensitive, encryptSensitive, hashPassword, verifyPassword } from "@/lib/security";
-import type { MapLocation, StoryItem, UmkmItem } from "@/lib/types";
+import type { MapLocation, SiteData, StoryItem, UmkmItem } from "@/lib/types";
+
+export class ConcurrentUpdateError extends Error {
+  constructor(message = "Data berubah bersamaan. Muat ulang sebelum mencoba lagi.") {
+    super(message);
+    this.name = "ConcurrentUpdateError";
+  }
+}
 
 function clean(value: unknown, max = 500): string {
   return typeof value === "string" ? value.trim().slice(0, max) : "";
@@ -48,7 +57,7 @@ function numericIdentity(value: string): boolean {
 }
 
 function shortCode(): string {
-  return Math.random().toString(36).slice(2, 8).toUpperCase();
+  return randomUUID().replaceAll("-", "").slice(0, 8).toUpperCase();
 }
 
 function requestNumber(): string {
@@ -60,6 +69,10 @@ function submissionNumber(type: ContributionType): string {
   const prefix = type === "umkm" ? "UMKM" : type === "tourism" ? "WIS" : "MAP";
   const date = new Date().toISOString().slice(0, 10).replaceAll("-", "");
   return `BS-${prefix}-${date}-${shortCode()}`;
+}
+
+function slugify(value: string): string {
+  return value.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || randomUUID().slice(0, 8);
 }
 
 export async function registerCitizen(input: Record<string, unknown>) {
@@ -82,7 +95,7 @@ export async function registerCitizen(input: Record<string, unknown>) {
   await db.insert(citizenUsers).values({
     id,
     email,
-    passwordHash: hashPassword(password),
+    passwordHash: await hashPassword(password),
     fullName,
     phone,
     address,
@@ -98,7 +111,7 @@ export async function authenticateCitizen(emailInput: unknown, passwordInput: un
   if (!email || !password) return null;
 
   const [user] = await db.select().from(citizenUsers).where(eq(citizenUsers.email, email)).limit(1);
-  if (!user || !user.isActive || !verifyPassword(password, user.passwordHash)) return null;
+  if (!user || !user.isActive || !(await verifyPassword(password, user.passwordHash))) return null;
   return { id: user.id, email: user.email, fullName: user.fullName };
 }
 
@@ -144,35 +157,50 @@ export async function createServiceRequest(citizenId: string, input: Record<stri
   const id = randomUUID();
   const number = requestNumber();
   const now = new Date();
-  await db.insert(serviceRequests).values({
-    id,
-    requestNumber: number,
-    citizenId,
-    serviceCode: PILOT_SERVICE.code,
-    status: "submitted",
-    applicantName,
-    identityNumberEncrypted: encryptSensitive(identityNumber),
-    familyCardNumberEncrypted: encryptSensitive(familyCardNumber),
-    phone,
-    address,
-    formData: { businessName, businessType, businessAddress, purpose },
-    citizenNote,
-    submittedAt: now,
-    updatedAt: now,
-  });
-  await db.insert(serviceRequestHistory).values({
-    id: randomUUID(),
-    requestId: id,
-    previousStatus: "",
-    newStatus: "submitted",
-    changedBy: applicantName,
-    note: "Pengajuan dikirim oleh warga.",
-  });
+  const formData = { businessName, businessType, businessAddress, purpose };
+
+  const rows = await sqlClient`
+    WITH inserted_request AS (
+      INSERT INTO service_requests (
+        id, request_number, citizen_id, service_code, status, applicant_name,
+        identity_number_encrypted, family_card_number_encrypted, phone, address,
+        form_data, citizen_note, submitted_at, updated_at
+      ) VALUES (
+        ${id}, ${number}, ${citizenId}, ${PILOT_SERVICE.code}, 'submitted', ${applicantName},
+        ${encryptSensitive(identityNumber)}, ${encryptSensitive(familyCardNumber)}, ${phone}, ${address},
+        ${JSON.stringify(formData)}::jsonb, ${citizenNote},
+        ${now.toISOString()}::timestamptz, ${now.toISOString()}::timestamptz
+      )
+      RETURNING id
+    )
+    INSERT INTO service_request_history (
+      id, request_id, previous_status, new_status, changed_by, public_note, note
+    )
+    SELECT ${randomUUID()}, id, '', 'submitted', ${applicantName},
+           'Pengajuan dikirim oleh warga.', 'Pengajuan dikirim oleh warga.'
+    FROM inserted_request
+    RETURNING request_id
+  `;
+
+  if (rows.length !== 1) throw new Error("Pengajuan gagal disimpan secara lengkap.");
   return { id, requestNumber: number };
 }
 
 export async function listCitizenRequests(citizenId: string) {
-  const rows = await db.select().from(serviceRequests).where(eq(serviceRequests.citizenId, citizenId)).orderBy(desc(serviceRequests.updatedAt));
+  const rows = await db
+    .select({
+      id: serviceRequests.id,
+      requestNumber: serviceRequests.requestNumber,
+      serviceCode: serviceRequests.serviceCode,
+      status: serviceRequests.status,
+      applicantName: serviceRequests.applicantName,
+      submittedAt: serviceRequests.submittedAt,
+      updatedAt: serviceRequests.updatedAt,
+    })
+    .from(serviceRequests)
+    .where(eq(serviceRequests.citizenId, citizenId))
+    .orderBy(desc(serviceRequests.updatedAt));
+
   return rows.map((row) => ({
     id: row.id,
     requestNumber: row.requestNumber,
@@ -186,19 +214,50 @@ export async function listCitizenRequests(citizenId: string) {
 }
 
 export async function getCitizenRequest(citizenId: string, requestId: string) {
-  const [row] = await db.select().from(serviceRequests).where(and(eq(serviceRequests.id, requestId), eq(serviceRequests.citizenId, citizenId))).limit(1);
-  if (!row) return null;
-  const messages = await db
+  const [row] = await db
     .select()
+    .from(serviceRequests)
+    .where(and(eq(serviceRequests.id, requestId), eq(serviceRequests.citizenId, citizenId)))
+    .limit(1);
+  if (!row) return null;
+
+  const messages = await db
+    .select({
+      id: serviceRequestMessages.id,
+      senderType: serviceRequestMessages.senderType,
+      senderLabel: serviceRequestMessages.senderLabel,
+      message: serviceRequestMessages.message,
+      createdAt: serviceRequestMessages.createdAt,
+    })
     .from(serviceRequestMessages)
     .where(and(eq(serviceRequestMessages.requestId, requestId), eq(serviceRequestMessages.isInternal, false)))
     .orderBy(serviceRequestMessages.createdAt);
-  const history = await db.select().from(serviceRequestHistory).where(eq(serviceRequestHistory.requestId, requestId)).orderBy(serviceRequestHistory.createdAt);
+
+  const history = await db
+    .select({
+      id: serviceRequestHistory.id,
+      newStatus: serviceRequestHistory.newStatus,
+      publicNote: serviceRequestHistory.publicNote,
+      createdAt: serviceRequestHistory.createdAt,
+    })
+    .from(serviceRequestHistory)
+    .where(eq(serviceRequestHistory.requestId, requestId))
+    .orderBy(serviceRequestHistory.createdAt);
+
   return {
-    ...row,
+    id: row.id,
+    requestNumber: row.requestNumber,
+    serviceCode: row.serviceCode,
+    serviceName: PILOT_SERVICE.name,
     status: row.status as ServiceRequestStatus,
+    applicantName: row.applicantName,
     identityNumber: decryptSensitive(row.identityNumberEncrypted),
     familyCardNumber: decryptSensitive(row.familyCardNumberEncrypted),
+    phone: row.phone,
+    address: row.address,
+    formData: row.formData,
+    citizenNote: row.citizenNote,
+    publicNote: row.publicNote,
     submittedAt: row.submittedAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
     completedAt: row.completedAt?.toISOString() || null,
@@ -210,18 +269,33 @@ export async function getCitizenRequest(citizenId: string, requestId: string) {
 export async function addCitizenMessage(citizenId: string, requestId: string, messageInput: unknown) {
   const message = clean(messageInput, 1500);
   if (message.length < 2) throw new Error("Pesan terlalu pendek.");
-  const [request] = await db.select({ id: serviceRequests.id }).from(serviceRequests).where(and(eq(serviceRequests.id, requestId), eq(serviceRequests.citizenId, citizenId))).limit(1);
-  if (!request) throw new Error("Pengajuan tidak ditemukan.");
-  const [user] = await db.select({ fullName: citizenUsers.fullName }).from(citizenUsers).where(eq(citizenUsers.id, citizenId)).limit(1);
-  await db.insert(serviceRequestMessages).values({
-    id: randomUUID(),
-    requestId,
-    senderType: "citizen",
-    senderLabel: user?.fullName || "Warga",
-    message,
-    isInternal: false,
-  });
-  await db.update(serviceRequests).set({ updatedAt: new Date() }).where(eq(serviceRequests.id, requestId));
+
+  const [user] = await db
+    .select({ fullName: citizenUsers.fullName })
+    .from(citizenUsers)
+    .where(eq(citizenUsers.id, citizenId))
+    .limit(1);
+  const now = new Date();
+
+  const rows = await sqlClient`
+    WITH inserted_message AS (
+      INSERT INTO service_request_messages (
+        id, request_id, sender_type, sender_label, message, is_internal, created_at
+      )
+      SELECT ${randomUUID()}, sr.id, 'citizen', ${user?.fullName || "Warga"}, ${message}, false,
+             ${now.toISOString()}::timestamptz
+      FROM service_requests sr
+      WHERE sr.id = ${requestId} AND sr.citizen_id = ${citizenId}
+      RETURNING request_id
+    )
+    UPDATE service_requests
+    SET updated_at = ${now.toISOString()}::timestamptz
+    WHERE id = ${requestId}
+      AND EXISTS (SELECT 1 FROM inserted_message)
+    RETURNING id
+  `;
+
+  if (rows.length !== 1) throw new Error("Pengajuan tidak ditemukan.");
 }
 
 function submissionTitle(type: ContributionType, payload: Record<string, string | number | boolean | null>): string {
@@ -243,7 +317,7 @@ export async function createContentSubmission(citizenId: string, input: Record<s
     payload.instagram = safePublicUrl(input.instagram);
     payload.marketplace = safePublicUrl(input.marketplace);
     payload.image = safePublicUrl(input.image, true) || "/images/umkm-placeholder.svg";
-    payload.contactApproved = Boolean(input.contactApproved);
+    payload.contactApproved = input.contactApproved === true;
     if (String(payload.name).length < 3 || String(payload.description).length < 20) throw new Error("Nama dan deskripsi UMKM belum lengkap.");
   } else if (type === "tourism") {
     payload.title = clean(input.title, 180);
@@ -282,7 +356,20 @@ export async function createContentSubmission(citizenId: string, input: Record<s
 }
 
 export async function listCitizenSubmissions(citizenId: string) {
-  const rows = await db.select().from(contentSubmissions).where(eq(contentSubmissions.citizenId, citizenId)).orderBy(desc(contentSubmissions.updatedAt));
+  const rows = await db
+    .select({
+      id: contentSubmissions.id,
+      submissionNumber: contentSubmissions.submissionNumber,
+      type: contentSubmissions.type,
+      status: contentSubmissions.status,
+      payload: contentSubmissions.payload,
+      reviewNote: contentSubmissions.reviewNote,
+      updatedAt: contentSubmissions.updatedAt,
+    })
+    .from(contentSubmissions)
+    .where(eq(contentSubmissions.citizenId, citizenId))
+    .orderBy(desc(contentSubmissions.updatedAt));
+
   return rows.map((row) => ({
     id: row.id,
     submissionNumber: row.submissionNumber,
@@ -296,19 +383,27 @@ export async function listCitizenSubmissions(citizenId: string) {
 
 export async function listStaffRequests() {
   const rows = await db
-    .select({ request: serviceRequests, citizenEmail: citizenUsers.email })
+    .select({
+      id: serviceRequests.id,
+      requestNumber: serviceRequests.requestNumber,
+      status: serviceRequests.status,
+      applicantName: serviceRequests.applicantName,
+      citizenEmail: citizenUsers.email,
+      submittedAt: serviceRequests.submittedAt,
+      updatedAt: serviceRequests.updatedAt,
+    })
     .from(serviceRequests)
     .leftJoin(citizenUsers, eq(serviceRequests.citizenId, citizenUsers.id))
     .orderBy(desc(serviceRequests.updatedAt));
-  return rows.map(({ request, citizenEmail }) => ({
-    ...request,
-    citizenEmail: citizenEmail || "",
-    identityNumber: decryptSensitive(request.identityNumberEncrypted),
-    familyCardNumber: decryptSensitive(request.familyCardNumberEncrypted),
-    status: request.status as ServiceRequestStatus,
-    submittedAt: request.submittedAt.toISOString(),
-    updatedAt: request.updatedAt.toISOString(),
-    completedAt: request.completedAt?.toISOString() || null,
+
+  return rows.map((row) => ({
+    id: row.id,
+    requestNumber: row.requestNumber,
+    status: row.status as ServiceRequestStatus,
+    applicantName: row.applicantName,
+    citizenEmail: row.citizenEmail || "",
+    submittedAt: row.submittedAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
   }));
 }
 
@@ -320,17 +415,54 @@ export async function getStaffRequest(requestId: string) {
     .where(eq(serviceRequests.id, requestId))
     .limit(1);
   if (!row) return null;
-  const messages = await db.select().from(serviceRequestMessages).where(eq(serviceRequestMessages.requestId, requestId)).orderBy(serviceRequestMessages.createdAt);
-  const history = await db.select().from(serviceRequestHistory).where(eq(serviceRequestHistory.requestId, requestId)).orderBy(serviceRequestHistory.createdAt);
+
+  const messages = await db
+    .select({
+      id: serviceRequestMessages.id,
+      senderType: serviceRequestMessages.senderType,
+      senderLabel: serviceRequestMessages.senderLabel,
+      message: serviceRequestMessages.message,
+      isInternal: serviceRequestMessages.isInternal,
+      createdAt: serviceRequestMessages.createdAt,
+    })
+    .from(serviceRequestMessages)
+    .where(eq(serviceRequestMessages.requestId, requestId))
+    .orderBy(serviceRequestMessages.createdAt);
+
+  const history = await db
+    .select({
+      id: serviceRequestHistory.id,
+      previousStatus: serviceRequestHistory.previousStatus,
+      newStatus: serviceRequestHistory.newStatus,
+      changedBy: serviceRequestHistory.changedBy,
+      publicNote: serviceRequestHistory.publicNote,
+      note: serviceRequestHistory.note,
+      createdAt: serviceRequestHistory.createdAt,
+    })
+    .from(serviceRequestHistory)
+    .where(eq(serviceRequestHistory.requestId, requestId))
+    .orderBy(serviceRequestHistory.createdAt);
+
+  const request = row.request;
   return {
-    ...row.request,
+    id: request.id,
+    requestNumber: request.requestNumber,
+    serviceCode: request.serviceCode,
+    status: request.status as ServiceRequestStatus,
+    applicantName: request.applicantName,
     citizenEmail: row.citizenEmail || "",
-    identityNumber: decryptSensitive(row.request.identityNumberEncrypted),
-    familyCardNumber: decryptSensitive(row.request.familyCardNumberEncrypted),
-    status: row.request.status as ServiceRequestStatus,
-    submittedAt: row.request.submittedAt.toISOString(),
-    updatedAt: row.request.updatedAt.toISOString(),
-    completedAt: row.request.completedAt?.toISOString() || null,
+    identityNumber: decryptSensitive(request.identityNumberEncrypted),
+    familyCardNumber: decryptSensitive(request.familyCardNumberEncrypted),
+    phone: request.phone,
+    address: request.address,
+    formData: request.formData,
+    citizenNote: request.citizenNote,
+    assignedTo: request.assignedTo,
+    publicNote: request.publicNote,
+    staffNote: request.staffNote,
+    submittedAt: request.submittedAt.toISOString(),
+    updatedAt: request.updatedAt.toISOString(),
+    completedAt: request.completedAt?.toISOString() || null,
     messages: messages.map((item) => ({ ...item, createdAt: item.createdAt.toISOString() })),
     history: history.map((item) => ({ ...item, createdAt: item.createdAt.toISOString() })),
   };
@@ -338,48 +470,98 @@ export async function getStaffRequest(requestId: string) {
 
 export async function updateStaffRequest(requestId: string, input: Record<string, unknown>, staffName: string) {
   const status = clean(input.status, 40) as ServiceRequestStatus;
+  const publicNote = clean(input.publicNote, 1500);
   const staffNote = clean(input.staffNote, 1500);
   const assignedTo = clean(input.assignedTo, 120) || staffName;
   if (!REQUEST_STATUSES.includes(status)) throw new Error("Status pengajuan tidak valid.");
-  const [current] = await db.select().from(serviceRequests).where(eq(serviceRequests.id, requestId)).limit(1);
+
+  const [current] = await db
+    .select({ status: serviceRequests.status, updatedAt: serviceRequests.updatedAt })
+    .from(serviceRequests)
+    .where(eq(serviceRequests.id, requestId))
+    .limit(1);
   if (!current) throw new Error("Pengajuan tidak ditemukan.");
 
-  const now = new Date();
-  await db.update(serviceRequests).set({
-    status,
-    staffNote,
-    assignedTo,
-    updatedAt: now,
-    completedAt: status === "completed" ? (current.completedAt || now) : null,
-  }).where(eq(serviceRequests.id, requestId));
-
-  if (current.status !== status) {
-    await db.insert(serviceRequestHistory).values({
-      id: randomUUID(),
-      requestId,
-      previousStatus: current.status,
-      newStatus: status,
-      changedBy: staffName,
-      note: staffNote,
-    });
+  const currentStatus = current.status as ServiceRequestStatus;
+  if (!REQUEST_STATUSES.includes(currentStatus)) throw new Error("Status pengajuan saat ini tidak dikenali.");
+  if (!requestStatusTransitionIsAllowed(currentStatus, status)) {
+    throw new Error(`Perubahan status dari ${currentStatus} ke ${status} tidak diperbolehkan.`);
   }
+  if ((status === "revision_required" || status === "rejected") && publicNote.length < 5) {
+    throw new Error("Catatan untuk warga wajib diisi saat meminta perbaikan atau menolak pengajuan.");
+  }
+
+  const now = new Date();
+  if (currentStatus === status) {
+    const rows = await sqlClient`
+      UPDATE service_requests
+      SET public_note = ${publicNote},
+          staff_note = ${staffNote},
+          assigned_to = ${assignedTo},
+          updated_at = ${now.toISOString()}::timestamptz
+      WHERE id = ${requestId}
+        AND status = ${currentStatus}
+        AND updated_at = ${current.updatedAt.toISOString()}::timestamptz
+      RETURNING id
+    `;
+    if (rows.length !== 1) throw new ConcurrentUpdateError("Pengajuan berubah saat sedang diperbarui. Muat ulang detail.");
+    return;
+  }
+
+  const rows = await sqlClient`
+    WITH updated_request AS (
+      UPDATE service_requests
+      SET status = ${status},
+          public_note = ${publicNote},
+          staff_note = ${staffNote},
+          assigned_to = ${assignedTo},
+          updated_at = ${now.toISOString()}::timestamptz,
+          completed_at = CASE
+            WHEN ${status} = 'completed' THEN COALESCE(completed_at, ${now.toISOString()}::timestamptz)
+            ELSE completed_at
+          END
+      WHERE id = ${requestId}
+        AND status = ${currentStatus}
+        AND updated_at = ${current.updatedAt.toISOString()}::timestamptz
+      RETURNING id
+    )
+    INSERT INTO service_request_history (
+      id, request_id, previous_status, new_status, changed_by, public_note, note, created_at
+    )
+    SELECT ${randomUUID()}, id, ${currentStatus}, ${status}, ${staffName}, ${publicNote}, ${staffNote},
+           ${now.toISOString()}::timestamptz
+    FROM updated_request
+    RETURNING request_id
+  `;
+
+  if (rows.length !== 1) throw new ConcurrentUpdateError("Pengajuan berubah saat sedang diperbarui. Muat ulang detail.");
 }
 
 export async function addStaffMessage(requestId: string, input: Record<string, unknown>, staffName: string) {
   const message = clean(input.message, 1500);
-  const isInternal = Boolean(input.isInternal);
+  const isInternal = input.isInternal === true;
   if (message.length < 2) throw new Error("Pesan terlalu pendek.");
-  const [request] = await db.select({ id: serviceRequests.id }).from(serviceRequests).where(eq(serviceRequests.id, requestId)).limit(1);
-  if (!request) throw new Error("Pengajuan tidak ditemukan.");
-  await db.insert(serviceRequestMessages).values({
-    id: randomUUID(),
-    requestId,
-    senderType: "staff",
-    senderLabel: staffName,
-    message,
-    isInternal,
-  });
-  await db.update(serviceRequests).set({ updatedAt: new Date() }).where(eq(serviceRequests.id, requestId));
+  const now = new Date();
+
+  const rows = await sqlClient`
+    WITH inserted_message AS (
+      INSERT INTO service_request_messages (
+        id, request_id, sender_type, sender_label, message, is_internal, created_at
+      )
+      SELECT ${randomUUID()}, sr.id, 'staff', ${staffName}, ${message}, ${isInternal},
+             ${now.toISOString()}::timestamptz
+      FROM service_requests sr
+      WHERE sr.id = ${requestId}
+      RETURNING request_id
+    )
+    UPDATE service_requests
+    SET updated_at = ${now.toISOString()}::timestamptz
+    WHERE id = ${requestId}
+      AND EXISTS (SELECT 1 FROM inserted_message)
+    RETURNING id
+  `;
+
+  if (rows.length !== 1) throw new Error("Pengajuan tidak ditemukan.");
 }
 
 export async function listStaffSubmissions() {
@@ -388,11 +570,16 @@ export async function listStaffSubmissions() {
     .from(contentSubmissions)
     .leftJoin(citizenUsers, eq(contentSubmissions.citizenId, citizenUsers.id))
     .orderBy(desc(contentSubmissions.updatedAt));
+
   return rows.map(({ submission, citizenName, citizenEmail }) => ({
-    ...submission,
+    id: submission.id,
+    submissionNumber: submission.submissionNumber,
     type: submission.type as ContributionType,
     status: submission.status as SubmissionStatus,
     title: submissionTitle(submission.type as ContributionType, submission.payload),
+    payload: submission.payload,
+    reviewNote: submission.reviewNote,
+    publishedItemId: submission.publishedItemId,
     citizenName: citizenName || "",
     citizenEmail: citizenEmail || "",
     createdAt: submission.createdAt.toISOString(),
@@ -401,16 +588,18 @@ export async function listStaffSubmissions() {
   }));
 }
 
-function slugify(value: string): string {
-  return value.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || randomUUID().slice(0, 8);
+function removePublishedItem(data: SiteData, itemId: string): void {
+  data.umkm = data.umkm.filter((item) => item.id !== itemId);
+  data.stories = data.stories.filter((item) => item.id !== itemId);
+  data.mapLocations = data.mapLocations.filter((item) => item.id !== itemId);
 }
 
-async function publishSubmission(row: typeof contentSubmissions.$inferSelect): Promise<string> {
-  if (row.publishedItemId) return row.publishedItemId;
-  const data = await getSiteData();
-  const itemId = `warga-${row.id}`;
+function addPublishedItem(
+  data: SiteData,
+  row: typeof contentSubmissions.$inferSelect,
+  itemId: string,
+): void {
   const payload = row.payload;
-
   if (row.type === "umkm") {
     const item: UmkmItem = {
       id: itemId,
@@ -427,8 +616,11 @@ async function publishSubmission(row: typeof contentSubmissions.$inferSelect): P
       marketplace: String(payload.marketplace || ""),
       status: "published",
     };
-    if (!data.umkm.some((existing) => existing.id === itemId)) data.umkm.push(item);
-  } else if (row.type === "tourism") {
+    data.umkm.push(item);
+    return;
+  }
+
+  if (row.type === "tourism") {
     const item: StoryItem = {
       id: itemId,
       slug: `${slugify(String(payload.title || itemId))}-${row.id.slice(0, 8)}`,
@@ -441,43 +633,136 @@ async function publishSubmission(row: typeof contentSubmissions.$inferSelect): P
       source: String(payload.source || "Pengajuan warga, diverifikasi kelurahan"),
       status: "published",
     };
-    if (!data.stories.some((existing) => existing.id === itemId)) data.stories.push(item);
-  } else {
-    const item: MapLocation = {
-      id: itemId,
-      name: String(payload.name || "Lokasi Warga"),
-      category: String(payload.category || "Lokasi Warga"),
-      description: String(payload.description || ""),
-      latitude: typeof payload.latitude === "number" ? payload.latitude : null,
-      longitude: typeof payload.longitude === "number" ? payload.longitude : null,
-      generalLocation: String(payload.generalLocation || "Benteng Selatan"),
-      mapsUrl: String(payload.mapsUrl || ""),
-      status: "published",
-    };
-    if (!data.mapLocations.some((existing) => existing.id === itemId)) data.mapLocations.push(item);
+    data.stories.push(item);
+    return;
   }
-  await writeSiteData(data);
-  return itemId;
+
+  const item: MapLocation = {
+    id: itemId,
+    name: String(payload.name || "Lokasi Warga"),
+    category: String(payload.category || "Lokasi Warga"),
+    description: String(payload.description || ""),
+    latitude: typeof payload.latitude === "number" ? payload.latitude : null,
+    longitude: typeof payload.longitude === "number" ? payload.longitude : null,
+    generalLocation: String(payload.generalLocation || "Benteng Selatan"),
+    mapsUrl: String(payload.mapsUrl || ""),
+    status: "published",
+  };
+  data.mapLocations.push(item);
+}
+
+async function syncSubmissionPublication(
+  current: typeof contentSubmissions.$inferSelect,
+  status: SubmissionStatus,
+  reviewNote: string,
+): Promise<void> {
+  const itemId = current.publishedItemId || `warga-${current.id}`;
+
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const document = await getSiteDocument();
+    const data = structuredClone(document.data);
+    removePublishedItem(data, itemId);
+    if (status === "published") addPublishedItem(data, current, itemId);
+
+    const now = new Date();
+    data.updatedAt = now.toISOString();
+    const publishedAt = status === "published"
+      ? (current.publishedAt || now).toISOString()
+      : null;
+
+    try {
+      const [lockedRows, cmsRows, submissionRows] = await sqlClient.transaction(
+        [
+          sqlClient`
+            SELECT id
+            FROM content_submissions
+            WHERE id = ${current.id}
+              AND updated_at = ${current.updatedAt.toISOString()}::timestamptz
+            FOR UPDATE
+          `,
+          sqlClient`
+            UPDATE cms_documents
+            SET data = ${JSON.stringify(data)}::jsonb,
+                updated_at = ${now.toISOString()}::timestamptz
+            WHERE id = 'main'
+              AND updated_at = ${document.revision}::timestamptz
+              AND EXISTS (
+                SELECT 1 FROM content_submissions
+                WHERE id = ${current.id}
+                  AND updated_at = ${current.updatedAt.toISOString()}::timestamptz
+              )
+            RETURNING id
+          `,
+          sqlClient`
+            UPDATE content_submissions
+            SET status = ${status},
+                review_note = ${reviewNote},
+                published_item_id = ${itemId},
+                published_at = ${publishedAt}::timestamptz,
+                updated_at = ${now.toISOString()}::timestamptz
+            WHERE id = ${current.id}
+              AND updated_at = ${current.updatedAt.toISOString()}::timestamptz
+              AND EXISTS (
+                SELECT 1 FROM cms_documents
+                WHERE id = 'main'
+                  AND updated_at = ${now.toISOString()}::timestamptz
+              )
+            RETURNING id
+          `,
+        ],
+        { isolationLevel: "Serializable" },
+      );
+
+      if (lockedRows.length === 1 && cmsRows.length === 1 && submissionRows.length === 1) return;
+      if (lockedRows.length === 0) {
+        throw new ConcurrentUpdateError("Kontribusi berubah saat sedang dimoderasi. Muat ulang daftar.");
+      }
+    } catch (error) {
+      const code = typeof error === "object" && error !== null && "code" in error
+        ? String((error as { code?: unknown }).code || "")
+        : "";
+      if (code === "40001") {
+        if (attempt < 2) continue;
+        throw new ConcurrentUpdateError("Transaksi publikasi berkonflik berulang kali. Muat ulang daftar.");
+      }
+      throw error;
+    }
+  }
+
+  throw new ConcurrentUpdateError("Konten CMS berubah bersamaan. Muat ulang lalu ulangi moderasi.");
 }
 
 export async function updateStaffSubmission(submissionId: string, input: Record<string, unknown>) {
   const status = clean(input.status, 40) as SubmissionStatus;
   const reviewNote = clean(input.reviewNote, 1500);
   if (!SUBMISSION_STATUSES.includes(status)) throw new Error("Status kontribusi tidak valid.");
+
   const [current] = await db.select().from(contentSubmissions).where(eq(contentSubmissions.id, submissionId)).limit(1);
   if (!current) throw new Error("Kontribusi tidak ditemukan.");
 
-  let publishedItemId = current.publishedItemId;
-  let publishedAt = current.publishedAt;
-  if (status === "published") {
-    publishedItemId = await publishSubmission(current);
-    publishedAt = new Date();
+  const currentStatus = current.status as SubmissionStatus;
+  if (!SUBMISSION_STATUSES.includes(currentStatus)) throw new Error("Status kontribusi saat ini tidak dikenali.");
+  if (!submissionStatusTransitionIsAllowed(currentStatus, status)) {
+    throw new Error(`Perubahan status dari ${currentStatus} ke ${status} tidak diperbolehkan.`);
   }
-  await db.update(contentSubmissions).set({
-    status,
-    reviewNote,
-    publishedItemId,
-    publishedAt,
-    updatedAt: new Date(),
-  }).where(eq(contentSubmissions.id, submissionId));
+  if ((status === "revision_required" || status === "rejected") && reviewNote.length < 5) {
+    throw new Error("Catatan untuk warga wajib diisi saat meminta perbaikan atau menolak kontribusi.");
+  }
+
+  if (status === "published" || current.status === "published" || current.publishedItemId) {
+    await syncSubmissionPublication(current, status, reviewNote);
+    return;
+  }
+
+  const now = new Date();
+  const rows = await sqlClient`
+    UPDATE content_submissions
+    SET status = ${status},
+        review_note = ${reviewNote},
+        updated_at = ${now.toISOString()}::timestamptz
+    WHERE id = ${submissionId}
+      AND updated_at = ${current.updatedAt.toISOString()}::timestamptz
+    RETURNING id
+  `;
+  if (rows.length !== 1) throw new ConcurrentUpdateError("Kontribusi berubah saat sedang dimoderasi. Muat ulang daftar.");
 }

@@ -22,6 +22,7 @@ async function main() {
     "service_request_messages",
     "service_request_history",
     "content_submissions",
+    "rate_limit_buckets",
   ];
 
   const rows = await sql`
@@ -38,10 +39,33 @@ async function main() {
     (table) => !available.has(table),
   );
 
-  if (missing.length > 0) {
-    console.error(
-      `Schema belum lengkap. Tabel yang belum ada: ${missing.join(", ")}`,
-    );
+  const columnRows = await sql`
+    select table_name, column_name
+    from information_schema.columns
+    where table_schema = 'public'
+  `;
+  const columns = new Set(
+    columnRows.map((row) => `${String(row.table_name)}.${String(row.column_name)}`),
+  );
+  const requiredColumns = [
+    "service_requests.public_note",
+    "service_requests.staff_note",
+    "service_request_history.public_note",
+    "service_request_history.note",
+    "rate_limit_buckets.key",
+    "rate_limit_buckets.count",
+    "rate_limit_buckets.window_started_at",
+    "rate_limit_buckets.expires_at",
+  ];
+  const missingColumns = requiredColumns.filter((column) => !columns.has(column));
+
+  if (missing.length > 0 || missingColumns.length > 0) {
+    if (missing.length > 0) {
+      console.error(`Schema belum lengkap. Tabel yang belum ada: ${missing.join(", ")}`);
+    }
+    if (missingColumns.length > 0) {
+      console.error(`Schema belum lengkap. Kolom yang belum ada: ${missingColumns.join(", ")}`);
+    }
     process.exitCode = 1;
     return;
   }
@@ -50,6 +74,9 @@ async function main() {
 
   for (const table of requiredTables) {
     console.log(`- ${table}`);
+  }
+  for (const column of requiredColumns) {
+    console.log(`- ${column}`);
   }
 }
 

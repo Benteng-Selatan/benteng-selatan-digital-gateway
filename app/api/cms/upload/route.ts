@@ -1,122 +1,34 @@
 import { put } from "@vercel/blob";
-import { extname } from "node:path";
 
 import { isAuthenticated } from "@/lib/auth";
-
-const allowedTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
-
-// Vercel Functions memiliki batas request sekitar 4,5 MB.
-// Gunakan 4 MB agar tersedia margin untuk request.
-const MAX_BYTES = 4 * 1024 * 1024;
-
-function getFallbackExtension(contentType: string): string {
-  switch (contentType) {
-    case "image/png":
-      return ".png";
-
-    case "image/webp":
-      return ".webp";
-
-    default:
-      return ".jpg";
-  }
-}
-
-function sanitizeFilename(filename: string): string {
-  const extension = extname(filename).toLowerCase();
-
-  const baseName = filename
-    .replace(extension, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "")
-    .slice(0, 60);
-
-  return baseName || "gambar";
-}
+import { validateAndSanitizeImage } from "@/lib/image-upload";
+import { clientAddress, enforceRateLimit, RateLimitError, rateLimitResponse } from "@/lib/rate-limit";
+import { sameOriginErrorResponse } from "@/lib/request-security";
 
 export async function POST(request: Request): Promise<Response> {
-  if (!(await isAuthenticated())) {
-    return Response.json(
-      {
-        message: "Tidak terautentikasi.",
-      },
-      {
-        status: 401,
-      },
-    );
-  }
+  const originError = sameOriginErrorResponse(request);
+  if (originError) return originError;
+  if (!(await isAuthenticated())) return Response.json({ message: "Tidak terautentikasi." }, { status: 401 });
 
   try {
+    await enforceRateLimit({
+      scope: "cms-upload",
+      identifier: clientAddress(request),
+      limit: 30,
+      windowSeconds: 60 * 60,
+    });
+
     const formData = await request.formData();
     const file = formData.get("file");
+    if (!(file instanceof File)) throw new Error("File gambar tidak ditemukan.");
 
-    if (!(file instanceof File)) {
-      return Response.json(
-        {
-          message: "File gambar tidak ditemukan.",
-        },
-        {
-          status: 400,
-        },
-      );
-    }
-
-    if (!allowedTypes.has(file.type)) {
-      return Response.json(
-        {
-          message: "Format gambar harus JPG, PNG, atau WEBP.",
-        },
-        {
-          status: 400,
-        },
-      );
-    }
-
-    if (file.size <= 0) {
-      return Response.json(
-        {
-          message: "File gambar kosong.",
-        },
-        {
-          status: 400,
-        },
-      );
-    }
-
-    if (file.size > MAX_BYTES) {
-      return Response.json(
-        {
-          message: "Ukuran gambar maksimal 4 MB.",
-        },
-        {
-          status: 400,
-        },
-      );
-    }
-
-    const extension =
-      extname(file.name).toLowerCase() || getFallbackExtension(file.type);
-
-    const safeBaseName = sanitizeFilename(file.name);
-
-    const year = new Date().getFullYear();
-
-    const pathname = `cms/${year}/${Date.now()}-${safeBaseName}${extension}`;
-
+    const image = await validateAndSanitizeImage(file);
     const blobToken = process.env.BLOB_READ_WRITE_TOKEN;
+    if (!blobToken) return Response.json({ message: "Konfigurasi penyimpanan gambar belum tersedia." }, { status: 500 });
 
-    if (!blobToken) {
-      return Response.json(
-        {
-          message: "Konfigurasi penyimpanan gambar belum tersedia.",
-        },
-        {
-          status: 500,
-        },
-      );
-    }
-    const blob = await put(pathname, file, {
+    const pathname = `cms/${new Date().getFullYear()}/${Date.now()}-${image.safeBaseName}${image.extension}`;
+    const body = new Blob([new Uint8Array(image.buffer)], { type: image.contentType });
+    const blob = await put(pathname, body, {
       access: "public",
       addRandomSuffix: true,
       token: blobToken,
@@ -125,19 +37,17 @@ export async function POST(request: Request): Promise<Response> {
     return Response.json({
       url: blob.url,
       pathname: blob.pathname,
-      contentType: file.type,
-      size: file.size,
+      contentType: image.contentType,
+      size: image.buffer.length,
+      width: image.width,
+      height: image.height,
     });
   } catch (error: unknown) {
+    if (error instanceof RateLimitError) return rateLimitResponse(error);
     console.error("Blob upload error:", error);
-
     return Response.json(
-      {
-        message: "Gambar gagal diunggah ke penyimpanan.",
-      },
-      {
-        status: 500,
-      },
+      { message: error instanceof Error ? error.message : "Gambar gagal diunggah ke penyimpanan." },
+      { status: 400 },
     );
   }
 }

@@ -9,6 +9,9 @@ function requiredEnv(name: "CMS_SESSION_SECRET" | "CMS_USERNAME" | "CMS_PASSWORD
   if (!value && process.env.NODE_ENV === "production") {
     throw new Error(`${name} wajib tersedia di environment production.`);
   }
+  if (name === "CMS_SESSION_SECRET" && value && process.env.NODE_ENV === "production" && value.length < 32) {
+    throw new Error("CMS_SESSION_SECRET minimal 32 karakter di environment production.");
+  }
   return value || developmentFallback;
 }
 

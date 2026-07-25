@@ -8,22 +8,19 @@
 - Citizen dashboard.
 - Pilot Surat Keterangan Usaha workflow.
 - Status history and citizen–staff messaging.
-- Internal staff notes.
+- Separate public notes and internal staff notes.
 - Citizen submissions for UMKM, tourism/culture, and map locations.
 - Public-image upload for contribution media.
 - Staff operations dashboard and moderation.
-- Automatic publication of approved contributions into the existing CMS document.
-- Production-safe CMS credential handling.
+- Atomic publish, update, and unpublish synchronization for moderated contributions.
+- Persistent rate limiting, same-origin checks, optimistic concurrency, and security headers.
+- Production-safe session and encryption secret handling.
 - Updated environment example and deployment documentation.
 - Reduced Next.js build workers to match the two-core Vercel build machine.
 
 ## Validation
 
-- ESLint: passed.
-- TypeScript: passed.
-- Next.js production build: passed.
-- Password hashing/encryption unit smoke test: passed.
-- Production dependency audit: 0 vulnerabilities.
+The hardening session passed syntax/transpile checks and runtime tests for status transitions, encryption, password hashing, image validation, CMS validation, and same-origin enforcement. Full ESLint, TypeScript, and production build checks must be rerun after dependencies are installed successfully; the npm registry was unavailable during the final verification session.
 
 ## Required before deployment
 

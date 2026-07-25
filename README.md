@@ -102,3 +102,7 @@ npm run build
 - CMS utama masih menggunakan satu dokumen JSONB sehingga publikasi kontribusi diasumsikan dilakukan oleh sedikit petugas.
 
 Integrasi eksternal ditunda sampai alur transaksi inti stabil dan teruji.
+
+## High-priority hardening
+
+Perbaikan integritas workflow, publish/unpublish, pembatasan PII, optimistic concurrency CMS, rate limiting, dan validasi upload didokumentasikan di [`docs/HIGH_PRIORITY_HARDENING.md`](docs/HIGH_PRIORITY_HARDENING.md). Setelah memperbarui kode, jalankan `npm run db:push` agar tabel `rate_limit_buckets` tersedia.
