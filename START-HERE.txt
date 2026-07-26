@@ -18,5 +18,5 @@ Gambar hasil upload tersimpan di Vercel Blob.
 
 Koneksi database dan penyimpanan dikonfigurasi melalui file .env.local
 untuk pengembangan lokal dan melalui Environment Variables di Vercel
-untuk Preview dan Production.
+untuk Preview dan Production.code docs/CONTENT_MODEL.md
 Baca README.md dan docs/PROJECT_STATUS.md sebelum pengembangan lanjutan.
