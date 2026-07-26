@@ -1,6 +1,7 @@
 import {
   boolean,
   index,
+  integer,
   jsonb,
   pgTable,
   text,
@@ -134,4 +135,33 @@ export const contentSubmissions = pgTable(
     index("content_submissions_citizen_idx").on(table.citizenId),
     index("content_submissions_status_idx").on(table.status),
   ],
+);
+
+export const loginRateLimits = pgTable(
+  "login_rate_limits",
+  {
+    key: text("key").primaryKey(),
+    attempts: integer("attempts").default(0).notNull(),
+    windowStartedAt: timestamp("window_started_at", {
+      withTimezone: true,
+      mode: "date",
+    })
+      .defaultNow()
+      .notNull(),
+    blockedUntil: timestamp("blocked_until", {
+      withTimezone: true,
+      mode: "date",
+    }),
+    updatedAt: timestamp("updated_at", {
+      withTimezone: true,
+      mode: "date",
+    })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    blockedUntilIdx: index("login_rate_limits_blocked_until_idx").on(
+      table.blockedUntil
+    ),
+  })
 );
