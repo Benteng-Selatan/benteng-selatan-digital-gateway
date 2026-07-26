@@ -16,7 +16,7 @@ Warga membuat akun
 Alur kontribusi publik:
 
 ```text
-Warga mengajukan UMKM/wisata/lokasi
+Warga mengajukan UMKM/Kabar/lokasi
 → petugas memoderasi
 → petugas memilih status Diterbitkan
 → data otomatis masuk ke CMS publik

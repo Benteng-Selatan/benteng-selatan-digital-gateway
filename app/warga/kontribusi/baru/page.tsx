@@ -8,5 +8,5 @@ export const dynamic = "force-dynamic";
 export default async function NewContributionPage({ searchParams }: { searchParams: Promise<{ type?: string }> }) {
   const citizen = await getCurrentCitizen(); if (!citizen) redirect("/warga/masuk");
   const query = await searchParams; const selected = CONTRIBUTION_TYPES.includes(query.type as ContributionType) ? query.type as ContributionType : "umkm";
-  return <><PortalHeader name={citizen.fullName} /><main className="portal-page"><div className="container narrow-container"><div className="portal-title"><span className="eyebrow">Kontribusi warga</span><h1>Ajukan data untuk portal publik</h1><p>Petugas akan memeriksa data sebelum menerbitkannya pada menu UMKM, wisata, atau peta.</p></div><section className="portal-panel"><NewContributionForm initialType={selected} /></section></div></main></>;
+  return <><PortalHeader name={citizen.fullName} /><main className="portal-page"><div className="container narrow-container"><div className="portal-title"><span className="eyebrow">Kontribusi warga</span><h1>Ajukan data untuk portal publik</h1><p>Petugas akan memeriksa data sebelum menerbitkannya pada menu UMKM, Kabar, atau peta.</p></div><section className="portal-panel"><NewContributionForm initialType={selected} /></section></div></main></>;
 }

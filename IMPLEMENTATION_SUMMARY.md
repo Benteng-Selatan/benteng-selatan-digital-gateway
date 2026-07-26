@@ -7,7 +7,7 @@
 - Cookie sesi bertanda tangan.
 - Enkripsi NIK/KK AES-256-GCM.
 - Pengajuan Surat Keterangan Usaha, history, pesan, dan catatan internal.
-- Kontribusi UMKM, wisata/budaya, dan lokasi peta.
+- Kontribusi UMKM, Kabar, dan lokasi peta.
 - Upload gambar publik dengan pemeriksaan file signature.
 - Rate limiting login dan registrasi.
 - Pemisahan database Local, Preview, dan Production.
@@ -40,3 +40,13 @@ npm run db:check-high-priority
 npm run check
 npm run dev
 ```
+
+## Pembaruan v0.3.0 — Kabar dan Kesejahteraan
+
+- Menu `Wisata & Budaya` diubah menjadi `Kabar` tanpa memutus route `/wisata`.
+- Kanal artikel mendukung kategori, jenis artikel/pengumuman/agenda, tanggal, artikel utama, dan filter publik.
+- Kontribusi warga `tourism` dipertahankan secara internal untuk kompatibilitas, tetapi tampil sebagai `Kabar / kegiatan`.
+- `/kesejahteraan` menggunakan dashboard PBI-JK, PKH, Sembako, dan Desil 1–5.
+- Data awal dashboard diisi dari Sheet 2 `Benteng Selatan.xlsx`.
+- Persentase dihitung otomatis dan validasi konsistensi tersedia di CMS serta API.
+- Tidak ada migrasi tabel database baru.

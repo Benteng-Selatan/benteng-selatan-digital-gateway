@@ -58,6 +58,38 @@ export interface SocialStatistic {
   status: PublishStatus;
 }
 
+export interface SocialDashboard {
+  totalRecords: number;
+  period: string;
+  source: string;
+  note: string;
+  status: PublishStatus;
+  pbiJk: {
+    yes: number;
+    no: number;
+    period: string;
+  };
+  pkh: {
+    no: number;
+    family: number;
+    administrator: number;
+    period: string;
+  };
+  sembako: {
+    no: number;
+    family: number;
+    administrator: number;
+    period: string;
+  };
+  deciles: {
+    d1: number;
+    d2: number;
+    d3: number;
+    d4: number;
+    d5: number;
+  };
+}
+
 export interface SocialContent {
   intro: string;
   accessBarriers: string[];
@@ -95,6 +127,22 @@ export interface MapLocation {
   status: PublishStatus;
 }
 
+export const STORY_CATEGORIES = [
+  "Kegiatan Kelurahan",
+  "Pelayanan Publik",
+  "Pengumuman",
+  "Pembangunan",
+  "Sosial & Kesejahteraan",
+  "Keamanan & Lingkungan",
+  "UMKM & Ekonomi",
+  "Pendidikan & Pemuda",
+  "Wisata & Budaya",
+  "Prestasi Warga",
+] as const;
+
+export const STORY_TYPES = ["article", "announcement", "agenda"] as const;
+export type StoryType = (typeof STORY_TYPES)[number];
+
 export interface StoryItem {
   id: string;
   slug: string;
@@ -105,6 +153,10 @@ export interface StoryItem {
   image: string;
   generalLocation: string;
   source: string;
+  articleType: StoryType;
+  publishedAt: string;
+  eventDate: string;
+  featured: boolean;
   status: PublishStatus;
 }
 
@@ -114,6 +166,7 @@ export interface SiteData {
   contact: ContactData;
   services: ServiceItem[];
   socialStatistics: SocialStatistic[];
+  socialDashboard: SocialDashboard;
   socialContent: SocialContent;
   umkm: UmkmItem[];
   mapLocations: MapLocation[];

@@ -6,68 +6,96 @@ import { auditValues, type AuditContext } from "@/lib/audit";
 import seedData from "@/data/site-data.seed.json";
 import { db, sql } from "@/lib/db";
 import { cmsDocuments, contentSubmissions } from "@/lib/db/schema";
-import type { SiteData } from "@/lib/types";
+import { validateSocialDashboard } from "@/lib/social-dashboard";
+import { STORY_TYPES, type SiteData, type SocialDashboard, type StoryItem } from "@/lib/types";
 
 const DOCUMENT_ID = "main";
+const defaults = seedData as SiteData;
+
+function normalizeCategory(category: string): string {
+  const value = category.trim();
+  if (/wisata|budaya|kearifan|sejarah/i.test(value)) return "Wisata & Budaya";
+  return value || "Kegiatan Kelurahan";
+}
+
+export function normalizeSiteData(input: SiteData): SiteData {
+  const candidate = input as SiteData & {
+    socialDashboard?: Partial<SocialDashboard>;
+    stories?: Array<Partial<StoryItem> & Pick<StoryItem, "id" | "slug" | "title" | "category" | "excerpt" | "content" | "image" | "generalLocation" | "source" | "status">>;
+  };
+  const rawDashboard = candidate.socialDashboard;
+  const dashboard: SocialDashboard = {
+    ...defaults.socialDashboard,
+    ...rawDashboard,
+    pbiJk: { ...defaults.socialDashboard.pbiJk, ...rawDashboard?.pbiJk },
+    pkh: { ...defaults.socialDashboard.pkh, ...rawDashboard?.pkh },
+    sembako: { ...defaults.socialDashboard.sembako, ...rawDashboard?.sembako },
+    deciles: { ...defaults.socialDashboard.deciles, ...rawDashboard?.deciles },
+  };
+
+  const sourceStories = candidate.stories || defaults.stories;
+  const alreadyFeatured = sourceStories.some((story) => Boolean(story.featured));
+  const fallbackDate = input.updatedAt?.slice(0, 10) || "";
+  const stories: StoryItem[] = sourceStories.map((story, index) => ({
+    id: story.id,
+    slug: story.slug,
+    title: story.title,
+    category: normalizeCategory(story.category),
+    excerpt: story.excerpt,
+    content: story.content,
+    image: story.image,
+    generalLocation: story.generalLocation,
+    source: story.source,
+    articleType: STORY_TYPES.includes(story.articleType as (typeof STORY_TYPES)[number]) ? story.articleType as StoryItem["articleType"] : "article",
+    publishedAt: story.publishedAt || fallbackDate,
+    eventDate: story.eventDate || "",
+    featured: Boolean(story.featured || (!alreadyFeatured && index === 0)),
+    status: story.status,
+  }));
+
+  return {
+    ...input,
+    socialDashboard: dashboard,
+    stories,
+  };
+}
 
 export async function getSiteData(): Promise<SiteData> {
   const [document] = await db
-    .select({
-      data: cmsDocuments.data,
-    })
+    .select({ data: cmsDocuments.data })
     .from(cmsDocuments)
     .where(eq(cmsDocuments.id, DOCUMENT_ID))
     .limit(1);
 
-  if (document) {
-    return document.data;
-  }
+  if (document) return normalizeSiteData(document.data);
 
-  const initialData: SiteData = {
-    ...(seedData as SiteData),
+  const initialData: SiteData = normalizeSiteData({
+    ...defaults,
     updatedAt: new Date().toISOString(),
-  };
+  });
 
   await db
     .insert(cmsDocuments)
-    .values({
-      id: DOCUMENT_ID,
-      data: initialData,
-      updatedAt: new Date(),
-    })
+    .values({ id: DOCUMENT_ID, data: initialData, updatedAt: new Date() })
     .onConflictDoNothing();
 
   return initialData;
 }
 
-export async function writeSiteData(
-  input: SiteData
-): Promise<SiteData> {
+export async function writeSiteData(input: SiteData): Promise<SiteData> {
   const now = new Date();
-
-  const data: SiteData = {
-    ...input,
-    updatedAt: now.toISOString(),
-  };
+  const data = normalizeSiteData({ ...input, updatedAt: now.toISOString() });
 
   await db
     .insert(cmsDocuments)
-    .values({
-      id: DOCUMENT_ID,
-      data,
-      updatedAt: now,
-    })
+    .values({ id: DOCUMENT_ID, data, updatedAt: now })
     .onConflictDoUpdate({
       target: cmsDocuments.id,
-      set: {
-        data,
-        updatedAt: now,
-      },
+      set: { data, updatedAt: now },
     });
 
   return data;
 }
-
 
 export async function writeSiteDataWithAudit(
   input: SiteData,
@@ -75,7 +103,7 @@ export async function writeSiteDataWithAudit(
   context: AuditContext
 ): Promise<SiteData> {
   const now = new Date();
-  const data: SiteData = { ...input, updatedAt: now.toISOString() };
+  const data = normalizeSiteData({ ...input, updatedAt: now.toISOString() });
   const presentIds = new Set([
     ...data.umkm.map((item) => item.id),
     ...data.stories.map((item) => item.id),
@@ -94,7 +122,11 @@ export async function writeSiteDataWithAudit(
     action: "cms.update",
     entityType: "cms_document",
     entityId: DOCUMENT_ID,
-    metadata: { updatedAt: data.updatedAt, automaticallyUnpublishedSubmissionIds: removedSubmissionIds },
+    metadata: {
+      updatedAt: data.updatedAt,
+      automaticallyUnpublishedSubmissionIds: removedSubmissionIds,
+      welfareDashboardStatus: data.socialDashboard.status,
+    },
   });
 
   await sql.transaction([
@@ -113,24 +145,21 @@ export async function writeSiteDataWithAudit(
   return data;
 }
 
-export function validateSiteData(
-  value: unknown
-): value is SiteData {
-  if (!value || typeof value !== "object") {
-    return false;
-  }
-
+export function validateSiteData(value: unknown): value is SiteData {
+  if (!value || typeof value !== "object") return false;
   const data = value as Partial<SiteData>;
-
-  return Boolean(
+  if (!(
     data.site &&
-      data.profile &&
-      data.contact &&
-      Array.isArray(data.services) &&
-      Array.isArray(data.socialStatistics) &&
-      data.socialContent &&
-      Array.isArray(data.umkm) &&
-      Array.isArray(data.mapLocations) &&
-      Array.isArray(data.stories)
-  );
+    data.profile &&
+    data.contact &&
+    Array.isArray(data.services) &&
+    Array.isArray(data.socialStatistics) &&
+    data.socialDashboard &&
+    data.socialContent &&
+    Array.isArray(data.umkm) &&
+    Array.isArray(data.mapLocations) &&
+    Array.isArray(data.stories)
+  )) return false;
+
+  return data.socialDashboard.status === "draft" || validateSocialDashboard(data.socialDashboard).length === 0;
 }

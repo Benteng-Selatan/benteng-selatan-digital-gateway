@@ -27,6 +27,7 @@ export function Footer({ siteName, contact }: { siteName: string; contact: Conta
             <Link href="/kesejahteraan">Kesejahteraan Sosial</Link>
             <Link href="/umkm">UMKM & Potensi</Link>
             <Link href="/peta">Peta Digital</Link>
+            <Link href="/wisata">Kabar</Link>
           </div>
         </div>
         <div>
