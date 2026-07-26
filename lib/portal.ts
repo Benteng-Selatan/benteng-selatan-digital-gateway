@@ -1,9 +1,11 @@
 import { randomUUID } from "node:crypto";
 import { and, desc, eq } from "drizzle-orm";
 
+import type { AdminSession } from "@/lib/auth";
+import { auditValues, type AuditContext } from "@/lib/audit";
 import { getCitizenSession } from "@/lib/citizen-auth";
-import { getSiteData, writeSiteData } from "@/lib/cms";
-import { db } from "@/lib/db";
+import { getSiteData } from "@/lib/cms";
+import { db, sql } from "@/lib/db";
 import {
   citizenUsers,
   contentSubmissions,
@@ -144,30 +146,24 @@ export async function createServiceRequest(citizenId: string, input: Record<stri
   const id = randomUUID();
   const number = requestNumber();
   const now = new Date();
-  await db.insert(serviceRequests).values({
-    id,
-    requestNumber: number,
-    citizenId,
-    serviceCode: PILOT_SERVICE.code,
-    status: "submitted",
-    applicantName,
-    identityNumberEncrypted: encryptSensitive(identityNumber),
-    familyCardNumberEncrypted: encryptSensitive(familyCardNumber),
-    phone,
-    address,
-    formData: { businessName, businessType, businessAddress, purpose },
-    citizenNote,
-    submittedAt: now,
-    updatedAt: now,
-  });
-  await db.insert(serviceRequestHistory).values({
-    id: randomUUID(),
-    requestId: id,
-    previousStatus: "",
-    newStatus: "submitted",
-    changedBy: applicantName,
-    note: "Pengajuan dikirim oleh warga.",
-  });
+  const historyId = randomUUID();
+  const formData = { businessName, businessType, businessAddress, purpose };
+  await sql.transaction([
+    sql`INSERT INTO service_requests (
+      id, request_number, citizen_id, service_code, status, applicant_name,
+      identity_number_encrypted, family_card_number_encrypted, phone, address,
+      form_data, citizen_note, submitted_at, updated_at
+    ) VALUES (
+      ${id}, ${number}, ${citizenId}, ${PILOT_SERVICE.code}, 'submitted', ${applicantName},
+      ${encryptSensitive(identityNumber)}, ${encryptSensitive(familyCardNumber)}, ${phone}, ${address},
+      ${JSON.stringify(formData)}::jsonb, ${citizenNote}, ${now}, ${now}
+    )`,
+    sql`INSERT INTO service_request_history (
+      id, request_id, previous_status, new_status, changed_by, note, created_at
+    ) VALUES (
+      ${historyId}, ${id}, '', 'submitted', ${applicantName}, 'Pengajuan dikirim oleh warga.', ${now}
+    )`,
+  ]);
   return { id, requestNumber: number };
 }
 
@@ -213,15 +209,12 @@ export async function addCitizenMessage(citizenId: string, requestId: string, me
   const [request] = await db.select({ id: serviceRequests.id }).from(serviceRequests).where(and(eq(serviceRequests.id, requestId), eq(serviceRequests.citizenId, citizenId))).limit(1);
   if (!request) throw new Error("Pengajuan tidak ditemukan.");
   const [user] = await db.select({ fullName: citizenUsers.fullName }).from(citizenUsers).where(eq(citizenUsers.id, citizenId)).limit(1);
-  await db.insert(serviceRequestMessages).values({
-    id: randomUUID(),
-    requestId,
-    senderType: "citizen",
-    senderLabel: user?.fullName || "Warga",
-    message,
-    isInternal: false,
-  });
-  await db.update(serviceRequests).set({ updatedAt: new Date() }).where(eq(serviceRequests.id, requestId));
+  const now = new Date();
+  await sql.transaction([
+    sql`INSERT INTO service_request_messages (id, request_id, sender_type, sender_label, message, is_internal, created_at)
+        VALUES (${randomUUID()}, ${requestId}, 'citizen', ${user?.fullName || "Warga"}, ${message}, false, ${now})`,
+    sql`UPDATE service_requests SET updated_at=${now} WHERE id=${requestId}`,
+  ]);
 }
 
 function submissionTitle(type: ContributionType, payload: Record<string, string | number | boolean | null>): string {
@@ -318,7 +311,13 @@ export async function listStaffRequests() {
   }));
 }
 
-export async function getStaffRequest(requestId: string) {
+function maskIdentity(value: string): string {
+  if (!value) return "";
+  if (value.length <= 8) return "*".repeat(value.length);
+  return `${value.slice(0, 4)}${"*".repeat(value.length - 8)}${value.slice(-4)}`;
+}
+
+export async function getStaffRequest(requestId: string, includeSensitive = false) {
   const [row] = await db
     .select({ request: serviceRequests, citizenEmail: citizenUsers.email })
     .from(serviceRequests)
@@ -328,11 +327,19 @@ export async function getStaffRequest(requestId: string) {
   if (!row) return null;
   const messages = await db.select().from(serviceRequestMessages).where(eq(serviceRequestMessages.requestId, requestId)).orderBy(serviceRequestMessages.createdAt);
   const history = await db.select().from(serviceRequestHistory).where(eq(serviceRequestHistory.requestId, requestId)).orderBy(serviceRequestHistory.createdAt);
+  const {
+    identityNumberEncrypted,
+    familyCardNumberEncrypted,
+    ...safeRequest
+  } = row.request;
+  const identityNumber = decryptSensitive(identityNumberEncrypted);
+  const familyCardNumber = decryptSensitive(familyCardNumberEncrypted);
   return {
-    ...row.request,
+    ...safeRequest,
     citizenEmail: row.citizenEmail || "",
-    identityNumber: decryptSensitive(row.request.identityNumberEncrypted),
-    familyCardNumber: decryptSensitive(row.request.familyCardNumberEncrypted),
+    identityNumber: includeSensitive ? identityNumber : maskIdentity(identityNumber),
+    familyCardNumber: includeSensitive ? familyCardNumber : maskIdentity(familyCardNumber),
+    sensitiveDataMasked: !includeSensitive,
     status: row.request.status as ServiceRequestStatus,
     submittedAt: row.request.submittedAt.toISOString(),
     updatedAt: row.request.updatedAt.toISOString(),
@@ -342,50 +349,66 @@ export async function getStaffRequest(requestId: string) {
   };
 }
 
-export async function updateStaffRequest(requestId: string, input: Record<string, unknown>, staffName: string) {
+export async function updateStaffRequest(
+  requestId: string,
+  input: Record<string, unknown>,
+  actor: AdminSession,
+  context: AuditContext
+) {
   const status = clean(input.status, 40) as ServiceRequestStatus;
   const staffNote = clean(input.staffNote, 1500);
-  const assignedTo = clean(input.assignedTo, 120) || staffName;
+  const assignedTo = clean(input.assignedTo, 120) || actor.fullName;
   if (!REQUEST_STATUSES.includes(status)) throw new Error("Status pengajuan tidak valid.");
   const [current] = await db.select().from(serviceRequests).where(eq(serviceRequests.id, requestId)).limit(1);
   if (!current) throw new Error("Pengajuan tidak ditemukan.");
 
   const now = new Date();
-  await db.update(serviceRequests).set({
-    status,
-    staffNote,
-    assignedTo,
-    updatedAt: now,
-    completedAt: status === "completed" ? (current.completedAt || now) : null,
-  }).where(eq(serviceRequests.id, requestId));
-
-  if (current.status !== status) {
-    await db.insert(serviceRequestHistory).values({
-      id: randomUUID(),
-      requestId,
-      previousStatus: current.status,
-      newStatus: status,
-      changedBy: staffName,
-      note: staffNote,
-    });
-  }
+  const completedAt = status === "completed" ? (current.completedAt || now) : null;
+  const audit = auditValues({
+    actor,
+    context,
+    action: "request.update",
+    entityType: "service_request",
+    entityId: requestId,
+    metadata: { previousStatus: current.status, status, assignedTo, noteChanged: staffNote !== current.staffNote },
+  });
+  await sql.transaction([
+    sql`UPDATE service_requests SET status=${status}, staff_note=${staffNote}, assigned_to=${assignedTo}, updated_at=${now}, completed_at=${completedAt} WHERE id=${requestId}`,
+    sql`INSERT INTO service_request_history (id, request_id, previous_status, new_status, changed_by, note, created_at)
+      SELECT ${randomUUID()}, ${requestId}, ${current.status}, ${status}, ${actor.fullName}, ${staffNote}, ${now}
+      WHERE ${current.status} <> ${status}`,
+    sql`INSERT INTO audit_logs (id, actor_id, actor_username, actor_name, actor_role, action, entity_type, entity_id, metadata, ip_address, user_agent, created_at)
+      VALUES (${audit.id}, ${audit.actorId}, ${audit.actorUsername}, ${audit.actorName}, ${audit.actorRole}, ${audit.action}, ${audit.entityType}, ${audit.entityId}, ${JSON.stringify(audit.metadata)}::jsonb, ${audit.ipAddress}, ${audit.userAgent}, ${audit.createdAt})`,
+  ]);
 }
 
-export async function addStaffMessage(requestId: string, input: Record<string, unknown>, staffName: string) {
+export async function addStaffMessage(
+  requestId: string,
+  input: Record<string, unknown>,
+  actor: AdminSession,
+  context: AuditContext
+) {
   const message = clean(input.message, 1500);
   const isInternal = Boolean(input.isInternal);
   if (message.length < 2) throw new Error("Pesan terlalu pendek.");
   const [request] = await db.select({ id: serviceRequests.id }).from(serviceRequests).where(eq(serviceRequests.id, requestId)).limit(1);
   if (!request) throw new Error("Pengajuan tidak ditemukan.");
-  await db.insert(serviceRequestMessages).values({
-    id: randomUUID(),
-    requestId,
-    senderType: "staff",
-    senderLabel: staffName,
-    message,
-    isInternal,
+  const now = new Date();
+  const audit = auditValues({
+    actor,
+    context,
+    action: isInternal ? "request.internal_note" : "request.message",
+    entityType: "service_request",
+    entityId: requestId,
+    metadata: { isInternal },
   });
-  await db.update(serviceRequests).set({ updatedAt: new Date() }).where(eq(serviceRequests.id, requestId));
+  await sql.transaction([
+    sql`INSERT INTO service_request_messages (id, request_id, sender_type, sender_label, message, is_internal, created_at)
+      VALUES (${randomUUID()}, ${requestId}, 'staff', ${actor.fullName}, ${message}, ${isInternal}, ${now})`,
+    sql`UPDATE service_requests SET updated_at=${now} WHERE id=${requestId}`,
+    sql`INSERT INTO audit_logs (id, actor_id, actor_username, actor_name, actor_role, action, entity_type, entity_id, metadata, ip_address, user_agent, created_at)
+      VALUES (${audit.id}, ${audit.actorId}, ${audit.actorUsername}, ${audit.actorName}, ${audit.actorRole}, ${audit.action}, ${audit.entityType}, ${audit.entityId}, ${JSON.stringify(audit.metadata)}::jsonb, ${audit.ipAddress}, ${audit.userAgent}, ${audit.createdAt})`,
+  ]);
 }
 
 export async function listStaffSubmissions() {
@@ -411,11 +434,25 @@ function slugify(value: string): string {
   return value.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || randomUUID().slice(0, 8);
 }
 
-async function publishSubmission(row: typeof contentSubmissions.$inferSelect): Promise<string> {
-  if (row.publishedItemId) return row.publishedItemId;
-  const data = await getSiteData();
-  const itemId = `warga-${row.id}`;
+function applySubmissionPublication(
+  data: Awaited<ReturnType<typeof getSiteData>>,
+  row: typeof contentSubmissions.$inferSelect,
+  shouldPublish: boolean
+) {
+  const itemId = row.publishedItemId || `warga-${row.id}`;
   const payload = row.payload;
+  const next = {
+    ...data,
+    umkm: [...data.umkm],
+    stories: [...data.stories],
+    mapLocations: [...data.mapLocations],
+    updatedAt: new Date().toISOString(),
+  };
+
+  next.umkm = next.umkm.filter((item) => item.id !== itemId);
+  next.stories = next.stories.filter((item) => item.id !== itemId);
+  next.mapLocations = next.mapLocations.filter((item) => item.id !== itemId);
+  if (!shouldPublish) return { data: next, itemId };
 
   if (row.type === "umkm") {
     const item: UmkmItem = {
@@ -433,7 +470,7 @@ async function publishSubmission(row: typeof contentSubmissions.$inferSelect): P
       marketplace: String(payload.marketplace || ""),
       status: "published",
     };
-    if (!data.umkm.some((existing) => existing.id === itemId)) data.umkm.push(item);
+    next.umkm.push(item);
   } else if (row.type === "tourism") {
     const item: StoryItem = {
       id: itemId,
@@ -447,7 +484,7 @@ async function publishSubmission(row: typeof contentSubmissions.$inferSelect): P
       source: String(payload.source || "Pengajuan warga, diverifikasi kelurahan"),
       status: "published",
     };
-    if (!data.stories.some((existing) => existing.id === itemId)) data.stories.push(item);
+    next.stories.push(item);
   } else {
     const item: MapLocation = {
       id: itemId,
@@ -460,30 +497,45 @@ async function publishSubmission(row: typeof contentSubmissions.$inferSelect): P
       mapsUrl: String(payload.mapsUrl || ""),
       status: "published",
     };
-    if (!data.mapLocations.some((existing) => existing.id === itemId)) data.mapLocations.push(item);
+    next.mapLocations.push(item);
   }
-  await writeSiteData(data);
-  return itemId;
+  return { data: next, itemId };
 }
 
-export async function updateStaffSubmission(submissionId: string, input: Record<string, unknown>) {
+export async function updateStaffSubmission(
+  submissionId: string,
+  input: Record<string, unknown>,
+  actor: AdminSession,
+  context: AuditContext
+) {
   const status = clean(input.status, 40) as SubmissionStatus;
   const reviewNote = clean(input.reviewNote, 1500);
   if (!SUBMISSION_STATUSES.includes(status)) throw new Error("Status kontribusi tidak valid.");
   const [current] = await db.select().from(contentSubmissions).where(eq(contentSubmissions.id, submissionId)).limit(1);
   if (!current) throw new Error("Kontribusi tidak ditemukan.");
 
-  let publishedItemId = current.publishedItemId;
-  let publishedAt = current.publishedAt;
-  if (status === "published") {
-    publishedItemId = await publishSubmission(current);
-    publishedAt = new Date();
-  }
-  await db.update(contentSubmissions).set({
-    status,
-    reviewNote,
-    publishedItemId,
-    publishedAt,
-    updatedAt: new Date(),
-  }).where(eq(contentSubmissions.id, submissionId));
+  const siteData = await getSiteData();
+  const shouldPublish = status === "published";
+  const publication = applySubmissionPublication(siteData, current, shouldPublish);
+  const now = new Date();
+  const publishedAt = shouldPublish ? now : null;
+  const storedPublishedItemId = shouldPublish || current.publishedItemId ? publication.itemId : "";
+  const action = shouldPublish ? "submission.publish" : current.status === "published" ? "submission.unpublish" : "submission.review";
+  const audit = auditValues({
+    actor,
+    context,
+    action,
+    entityType: "content_submission",
+    entityId: submissionId,
+    metadata: { previousStatus: current.status, status, publishedItemId: storedPublishedItemId },
+  });
+
+  await sql.transaction([
+    sql`INSERT INTO cms_documents (id, data, updated_at)
+      VALUES ('main', ${JSON.stringify(publication.data)}::jsonb, ${now})
+      ON CONFLICT (id) DO UPDATE SET data=EXCLUDED.data, updated_at=EXCLUDED.updated_at`,
+    sql`UPDATE content_submissions SET status=${status}, review_note=${reviewNote}, published_item_id=${storedPublishedItemId}, published_at=${publishedAt}, updated_at=${now} WHERE id=${submissionId}`,
+    sql`INSERT INTO audit_logs (id, actor_id, actor_username, actor_name, actor_role, action, entity_type, entity_id, metadata, ip_address, user_agent, created_at)
+      VALUES (${audit.id}, ${audit.actorId}, ${audit.actorUsername}, ${audit.actorName}, ${audit.actorRole}, ${audit.action}, ${audit.entityType}, ${audit.entityId}, ${JSON.stringify(audit.metadata)}::jsonb, ${audit.ipAddress}, ${audit.userAgent}, ${audit.createdAt})`,
+  ]);
 }

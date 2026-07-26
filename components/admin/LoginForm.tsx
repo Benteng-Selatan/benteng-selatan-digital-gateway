@@ -45,7 +45,7 @@ export function LoginForm() {
         {error ? <p className="error-text">{error}</p> : null}
         <button className="button button-primary" type="submit" disabled={loading}>{loading ? <LoaderCircle size={18} className="loading-spin" /> : <LockKeyhole size={18} />} {loading ? "Memeriksa..." : "Masuk ke CMS"}</button>
       </form>
-      <p className="login-note">Gunakan akun petugas yang dikonfigurasi melalui environment variable production.</p>
+      <p className="login-note">Gunakan akun petugas masing-masing. Kredensial environment hanya digunakan untuk bootstrap Super Admin pertama.</p>
     </div>
   );
 }

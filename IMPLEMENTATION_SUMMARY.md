@@ -1,37 +1,42 @@
-# Implementation Summary — Portal Warga MVP
+# Implementation Summary — Benteng Selatan Digital Gateway
 
-## Implemented
+## Baseline 0.1.1
 
-- Citizen registration/login/logout with hashed passwords.
-- Signed citizen session cookie.
-- Encrypted NIK/KK storage.
-- Citizen dashboard.
-- Pilot Surat Keterangan Usaha workflow.
-- Status history and citizen–staff messaging.
-- Internal staff notes.
-- Citizen submissions for UMKM, tourism/culture, and map locations.
-- Public-image upload for contribution media.
-- Staff operations dashboard and moderation.
-- Automatic publication of approved contributions into the existing CMS document.
-- Production-safe CMS credential handling.
-- Updated environment example and deployment documentation.
-- Reduced Next.js build workers to match the two-core Vercel build machine.
+- Portal publik, CMS, portal warga, dan dashboard operasional.
+- Registrasi/login warga dengan password `scrypt`.
+- Cookie sesi bertanda tangan.
+- Enkripsi NIK/KK AES-256-GCM.
+- Pengajuan Surat Keterangan Usaha, history, pesan, dan catatan internal.
+- Kontribusi UMKM, wisata/budaya, dan lokasi peta.
+- Upload gambar publik dengan pemeriksaan file signature.
+- Rate limiting login dan registrasi.
+- Pemisahan database Local, Preview, dan Production.
 
-## Validation
+## Paket 0.2.0 Prioritas Tinggi
 
-- ESLint: passed.
-- TypeScript: passed.
-- Next.js production build: passed.
-- Password hashing/encryption unit smoke test: passed.
-- Production dependency audit: 0 vulnerabilities.
+- Multi-user petugas berbasis tabel `staff_users`.
+- RBAC: Super Admin, Operator, Editor Konten, Reviewer, dan Auditor.
+- Audit log untuk autentikasi dan tindakan petugas.
+- Sesi lama otomatis tidak berlaku setelah perubahan role, status, atau password.
+- NIK/KK diberikan lengkap hanya kepada role yang berizin.
+- Publish, republish, dan unpublish kontribusi tersinkron dengan CMS.
+- Penghapusan kontribusi melalui CMS otomatis menurunkan status submission.
+- Operasi multi-tabel penting menggunakan transaksi database.
+- Migrasi, schema checks, SOP, acceptance test, deployment, dan rollback guide.
+- Pemeriksaan bantu untuk mendeteksi placeholder data resmi.
 
-## Required before deployment
+## Validasi Paket
+
+Pemeriksaan syntax, import lokal, JSON metadata, dan tipe internal telah lulus. Instalasi dependency serta `npm run check` penuh wajib dijalankan kembali pada komputer pengembang atau CI sebelum deployment. Detail tersedia di `VALIDATION_HIGH_PRIORITY.md`.
+
+## Urutan Awal
 
 ```bash
 npm ci
-npm run db:push
+cp .env.example .env.local
+npm run db:migrate-high-priority
 npm run db:check-portal
-npx vercel --prod
+npm run db:check-high-priority
+npm run check
+npm run dev
 ```
-
-Add `CITIZEN_SESSION_SECRET` and `CITIZEN_DATA_ENCRYPTION_KEY` to Vercel Production first.

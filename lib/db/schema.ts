@@ -9,6 +9,7 @@ import {
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 
+import type { AdminRole } from "@/lib/admin-permissions";
 import type { SiteData } from "@/lib/types";
 
 export const cmsDocuments = pgTable("cms_documents", {
@@ -165,3 +166,55 @@ export const loginRateLimits = pgTable(
     ),
   })
 );
+
+export const staffUsers = pgTable(
+  "staff_users",
+  {
+    id: text("id").primaryKey(),
+    username: text("username").notNull(),
+    passwordHash: text("password_hash").notNull(),
+    fullName: text("full_name").notNull(),
+    role: text("role").$type<AdminRole>().notNull().default("operator"),
+    isActive: boolean("is_active").notNull().default(true),
+    sessionVersion: integer("session_version").notNull().default(1),
+    lastLoginAt: timestamp("last_login_at", { withTimezone: true, mode: "date" }),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("staff_users_username_uidx").on(table.username),
+    index("staff_users_role_idx").on(table.role),
+    index("staff_users_active_idx").on(table.isActive),
+  ]
+);
+
+export const auditLogs = pgTable(
+  "audit_logs",
+  {
+    id: text("id").primaryKey(),
+    actorId: text("actor_id"),
+    actorUsername: text("actor_username").notNull().default("system"),
+    actorName: text("actor_name").notNull().default("System"),
+    actorRole: text("actor_role").notNull().default("system"),
+    action: text("action").notNull(),
+    entityType: text("entity_type").notNull(),
+    entityId: text("entity_id").notNull().default(""),
+    metadata: jsonb("metadata").$type<Record<string, unknown>>().notNull().default({}),
+    ipAddress: text("ip_address").notNull().default("unknown"),
+    userAgent: text("user_agent").notNull().default(""),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("audit_logs_actor_idx").on(table.actorId),
+    index("audit_logs_action_idx").on(table.action),
+    index("audit_logs_entity_idx").on(table.entityType, table.entityId),
+    index("audit_logs_created_at_idx").on(table.createdAt),
+  ]
+);
+

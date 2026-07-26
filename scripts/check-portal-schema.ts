@@ -22,6 +22,9 @@ async function main() {
     "service_request_messages",
     "service_request_history",
     "content_submissions",
+    "login_rate_limits",
+    "staff_users",
+    "audit_logs",
   ];
 
   const rows = await sql`

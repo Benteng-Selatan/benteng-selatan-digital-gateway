@@ -8,6 +8,13 @@
       "when": 1785056327294,
       "tag": "0000_add-login-rate-limits",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1785060371423,
+      "tag": "0001_staff_roles_audit",
+      "breakpoints": true
     }
   ]
 }

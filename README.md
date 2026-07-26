@@ -25,7 +25,12 @@ Portal publik dan layanan warga Kelurahan Benteng Selatan berbasis **Next.js 16*
 
 - CMS konten: `/admin`
 - Operasional layanan warga: `/admin/operasional`
-- Antrean pengajuan, filter status, detail warga, verifikasi, pesan, dan moderasi kontribusi.
+- Manajemen akun petugas: `/admin/petugas`
+- Audit aktivitas: `/admin/audit`
+- Multi-user admin dengan role Super Admin, Operator, Editor Konten, Reviewer, dan Auditor.
+- NIK/KK lengkap hanya tersedia bagi role berizin.
+- Perubahan status, publikasi, upload, dan akses data sensitif dicatat ke audit log.
+- Publish–unpublish kontribusi tersinkron dengan CMS publik.
 
 ## Menjalankan secara lokal
 
@@ -35,6 +40,8 @@ Persyaratan: Node.js 22 direkomendasikan.
 npm ci
 cp .env.example .env.local
 npm run db:push
+npm run db:migrate-high-priority
+npm run db:check-high-priority
 npm run dev
 ```
 
@@ -71,10 +78,11 @@ node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
 ## Deployment Vercel
 
 1. Tambahkan seluruh environment variable ke scope **Production**.
-2. Jalankan perubahan schema pada database Neon:
+2. Buat backup database, lalu jalankan migrasi schema:
 
 ```bash
-npm run db:push
+npm run db:migrate-high-priority
+npm run db:check-high-priority
 ```
 
 3. Deploy:
@@ -99,6 +107,25 @@ npm run build
 - Belum ada upload dokumen KTP/KK karena Blob yang aktif digunakan untuk media publik.
 - Verifikasi dokumen dilakukan melalui instruksi petugas dan pemeriksaan langsung.
 - Belum ada tanda tangan elektronik.
-- CMS utama masih menggunakan satu dokumen JSONB sehingga publikasi kontribusi diasumsikan dilakukan oleh sedikit petugas.
+- CMS utama masih menggunakan satu dokumen JSONB, tetapi perubahan publikasi kontribusi dan status submission kini ditulis secara transaksional.
 
 Integrasi eksternal ditunda sampai alur transaksi inti stabil dan teruji.
+
+
+## Dokumentasi hardening lanjutan
+
+- `docs/ADMIN_ROLES_AUDIT.md`
+- `docs/HIGH_PRIORITY_DEPLOYMENT.md`
+- `HIGH_PRIORITY_IMPLEMENTATION.md`
+
+
+## Dokumentasi Operasional 0.2.0
+
+- `HIGH_PRIORITY_IMPLEMENTATION.md` — ringkasan implementasi.
+- `docs/ADMIN_ROLES_AUDIT.md` — matriks role dan audit.
+- `docs/ADMIN_OPERATION_SOP.md` — SOP petugas.
+- `docs/HIGH_PRIORITY_DEPLOYMENT.md` — migrasi dan deployment.
+- `docs/HIGH_PRIORITY_TEST_PLAN.md` — acceptance test.
+- `docs/ROLLBACK_GUIDE.md` — rollback.
+- `docs/OFFICIAL_DATA_CHECKLIST.md` — verifikasi data resmi.
+- `VALIDATION_HIGH_PRIORITY.md` — status validasi paket.

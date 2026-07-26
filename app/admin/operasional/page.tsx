@@ -1,9 +1,12 @@
 import { redirect } from "next/navigation";
+
 import { OperationsDashboard } from "@/components/admin/OperationsDashboard";
-import { isAuthenticated } from "@/lib/auth";
+import { publicAdminSession, requireAdminPermission } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
+
 export default async function OperationsPage() {
-  if (!(await isAuthenticated())) redirect("/admin/login");
-  return <OperationsDashboard />;
+  const session = await requireAdminPermission("operations:view");
+  if (!session) return redirect("/admin/login");
+  return <OperationsDashboard user={publicAdminSession(session)} />;
 }
