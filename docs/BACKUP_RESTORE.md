@@ -223,6 +223,8 @@ const tables = [
   "service_request_history",
   "content_submissions",
   "login_rate_limits",
+  "staff_users",
+  "audit_logs",
 ];
 
 for (const table of tables) {

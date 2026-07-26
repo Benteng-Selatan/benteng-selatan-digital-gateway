@@ -1,22 +1,46 @@
-BENTENG SELATAN DIGITAL GATEWAY - MULAI DI SINI
+BENTENG SELATAN DIGITAL GATEWAY 0.2.0 - MULAI DI SINI
 
-1. Pastikan Node.js 20.9 atau lebih baru terpasang.
-2. Buka terminal pada folder proyek.
-3. Jalankan: npm install
-4. Salin .env.example menjadi .env.local
-5. Ubah CMS_PASSWORD dan CMS_SESSION_SECRET.
-6. Jalankan: npm run dev
-7. Buka http://localhost:3000
-8. CMS: http://localhost:3000/admin/login
+PERSYARATAN
+- Node.js 22 direkomendasikan.
+- Database Neon Development, bukan Production.
+- PostgreSQL Command Line Tools untuk migrasi manual/backup.
 
-Akun lokal bawaan jika .env.local belum dibuat:
-Username: admin
-Password: admin123
+LANGKAH LOKAL
+1. Buka terminal pada folder proyek.
+2. Jalankan: npm ci
+3. Salin .env.example menjadi .env.local
+4. Isi seluruh environment variable dengan nilai Development.
+5. Jalankan: npm run db:migrate-high-priority
+6. Jalankan: npm run db:check-portal
+7. Jalankan: npm run db:check-high-priority
+8. Jalankan: npm run dev
+9. Buka http://localhost:3000
 
-Data aplikasi dan CMS tersimpan di database PostgreSQL Neon.
-Gambar hasil upload tersimpan di Vercel Blob.
+ALAMAT UTAMA
+- Website publik       : http://localhost:3000
+- Portal warga         : http://localhost:3000/warga
+- Login petugas        : http://localhost:3000/admin/login
+- Operasional          : http://localhost:3000/admin/operasional
+- Manajemen petugas    : http://localhost:3000/admin/petugas
+- Audit log            : http://localhost:3000/admin/audit
 
-Koneksi database dan penyimpanan dikonfigurasi melalui file .env.local
-untuk pengembangan lokal dan melalui Environment Variables di Vercel
-untuk Preview dan Production.code docs/CONTENT_MODEL.md
-Baca README.md dan docs/PROJECT_STATUS.md sebelum pengembangan lanjutan.
+LOGIN PERTAMA
+- Database yang belum memiliki staff_users memakai CMS_USERNAME dan
+  CMS_PASSWORD untuk membuat Super Admin pertama.
+- Tidak ada username/password bawaan bila environment belum diisi.
+- Setelah login pertama, ubah kata sandi akun bootstrap melalui
+  halaman Manajemen Petugas dan gunakan akun masing-masing petugas.
+
+PENYIMPANAN
+- Data aplikasi dan CMS: PostgreSQL Neon.
+- Gambar publik: Vercel Blob.
+- .env.local, connection string, secret, dan file backup tidak boleh
+  dimasukkan ke Git atau dibagikan melalui dokumen terbuka.
+
+SEBELUM DEPLOYMENT
+1. Baca README.md.
+2. Baca docs/HIGH_PRIORITY_DEPLOYMENT.md.
+3. Buat backup database target.
+4. Jalankan npm run check.
+5. Jalankan npm run content:check-official.
+6. Uji Preview sesuai docs/HIGH_PRIORITY_TEST_PLAN.md.

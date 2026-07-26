@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import {
   Building2,
   Check,
@@ -10,7 +9,6 @@ import {
   ImageUp,
   LayoutDashboard,
   LoaderCircle,
-  LogOut,
   MapPinned,
   Plus,
   Save,
@@ -19,6 +17,8 @@ import {
   UserRoundCog
 } from "lucide-react";
 import { ChangeEvent, ReactNode, useMemo, useState } from "react";
+import { AdminToolbar } from "@/components/admin/AdminToolbar";
+import type { PublicAdminSession } from "@/lib/auth";
 import type {
   ContactData,
   MapLocation,
@@ -145,7 +145,7 @@ function ListPanel({ title, subtitle, status, onDelete, children }: {
   );
 }
 
-export function AdminDashboard({ initialData }: { initialData: SiteData }) {
+export function AdminDashboard({ initialData, user }: { initialData: SiteData; user: PublicAdminSession }) {
   const [data, setData] = useState(initialData);
   const [tab, setTab] = useState<TabKey>("overview");
   const [saving, setSaving] = useState(false);
@@ -184,8 +184,6 @@ export function AdminDashboard({ initialData }: { initialData: SiteData }) {
     }
   }
 
-  async function logout() { await fetch("/api/cms/logout", { method: "POST" }); window.location.href = "/admin/login"; }
-
   function addService() { setData((current) => ({ ...current, services: [...current.services, { id: generateId("layanan"), slug: "layanan-baru", name: "Layanan Baru", shortDescription: "", requirements: [], steps: [], serviceHours: "", location: "", contact: "", note: "", status: "draft" }] })); }
   function addSocial() { setData((current) => ({ ...current, socialStatistics: [...current.socialStatistics, { id: generateId("sosial"), category: "Kategori Baru", value: 0, description: "", year: "", source: "", status: "draft" }] })); }
   function addUmkm() { setData((current) => ({ ...current, umkm: [...current.umkm, { id: generateId("umkm"), slug: "umkm-baru", name: "UMKM Baru", category: "Lainnya", featuredProduct: "", description: "", image: "/images/umkm-placeholder.svg", publicContact: "", contactApproved: false, generalLocation: "Benteng Selatan", instagram: "", marketplace: "", status: "draft" }] })); }
@@ -194,7 +192,7 @@ export function AdminDashboard({ initialData }: { initialData: SiteData }) {
 
   return (
     <div className="admin-shell">
-      <header className="admin-topbar"><div className="container admin-topbar-inner"><div className="brand"><span className="brand-mark">BS</span><span><strong>CMS Benteng Selatan</strong><small>PostgreSQL & Vercel Blob</small></span></div><div className="admin-topbar-actions"><Link href="/admin/operasional" className="button button-primary"><FileText size={17} /><span>Layanan warga</span></Link><Link href="/" target="_blank" className="button button-outline"><Globe2 size={17} /><span>Lihat website</span></Link><button className="icon-button" type="button" onClick={logout} aria-label="Keluar"><LogOut size={18} /></button></div></div></header>
+      <AdminToolbar title="CMS Benteng Selatan" subtitle="Konten publik" user={user} />
       <div className="container admin-layout">
         <aside className="admin-sidebar">{tabItems.map(({ key, label, icon: Icon }) => <button key={key} type="button" className={tab === key ? "active" : ""} onClick={() => setTab(key)}><Icon size={18} /> {label}</button>)}</aside>
         <main className="admin-content">

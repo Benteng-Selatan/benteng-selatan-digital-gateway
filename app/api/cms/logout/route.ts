@@ -1,8 +1,20 @@
 import { cookies } from "next/headers";
-import { SESSION_COOKIE } from "@/lib/auth";
 
-export async function POST() {
-  const cookieStore = await cookies();
-  cookieStore.delete(SESSION_COOKIE);
+import { getAdminSession, SESSION_COOKIE } from "@/lib/auth";
+import { auditContextFromRequest, recordAudit } from "@/lib/audit";
+
+export async function POST(request: Request) {
+  const session = await getAdminSession();
+  if (session) {
+    await recordAudit({
+      actor: session,
+      action: "auth.logout",
+      entityType: "staff_session",
+      entityId: session.userId,
+      context: auditContextFromRequest(request),
+    });
+  }
+  const store = await cookies();
+  store.delete(SESSION_COOKIE);
   return Response.json({ ok: true });
 }

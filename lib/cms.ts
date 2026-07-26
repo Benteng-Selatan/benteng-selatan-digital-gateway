@@ -1,8 +1,11 @@
 import { eq } from "drizzle-orm";
 
+import type { AdminSession } from "@/lib/auth";
+import { auditValues, type AuditContext } from "@/lib/audit";
+
 import seedData from "@/data/site-data.seed.json";
-import { db } from "@/lib/db";
-import { cmsDocuments } from "@/lib/db/schema";
+import { db, sql } from "@/lib/db";
+import { cmsDocuments, contentSubmissions } from "@/lib/db/schema";
 import type { SiteData } from "@/lib/types";
 
 const DOCUMENT_ID = "main";
@@ -62,6 +65,51 @@ export async function writeSiteData(
       },
     });
 
+  return data;
+}
+
+
+export async function writeSiteDataWithAudit(
+  input: SiteData,
+  actor: AdminSession,
+  context: AuditContext
+): Promise<SiteData> {
+  const now = new Date();
+  const data: SiteData = { ...input, updatedAt: now.toISOString() };
+  const presentIds = new Set([
+    ...data.umkm.map((item) => item.id),
+    ...data.stories.map((item) => item.id),
+    ...data.mapLocations.map((item) => item.id),
+  ]);
+  const published = await db
+    .select({ id: contentSubmissions.id, publishedItemId: contentSubmissions.publishedItemId })
+    .from(contentSubmissions)
+    .where(eq(contentSubmissions.status, "published"));
+  const removedSubmissionIds = published
+    .filter((item) => item.publishedItemId && !presentIds.has(item.publishedItemId))
+    .map((item) => item.id);
+  const audit = auditValues({
+    actor,
+    context,
+    action: "cms.update",
+    entityType: "cms_document",
+    entityId: DOCUMENT_ID,
+    metadata: { updatedAt: data.updatedAt, automaticallyUnpublishedSubmissionIds: removedSubmissionIds },
+  });
+
+  await sql.transaction([
+    sql`INSERT INTO cms_documents (id, data, updated_at)
+      VALUES (${DOCUMENT_ID}, ${JSON.stringify(data)}::jsonb, ${now})
+      ON CONFLICT (id) DO UPDATE SET data=EXCLUDED.data, updated_at=EXCLUDED.updated_at`,
+    sql`UPDATE content_submissions
+      SET status='approved', published_at=NULL, updated_at=${now},
+          review_note=CASE WHEN review_note='' THEN 'Konten ditarik melalui CMS.' ELSE review_note END
+      WHERE id IN (
+        SELECT jsonb_array_elements_text(${JSON.stringify(removedSubmissionIds)}::jsonb)
+      )`,
+    sql`INSERT INTO audit_logs (id, actor_id, actor_username, actor_name, actor_role, action, entity_type, entity_id, metadata, ip_address, user_agent, created_at)
+      VALUES (${audit.id}, ${audit.actorId}, ${audit.actorUsername}, ${audit.actorName}, ${audit.actorRole}, ${audit.action}, ${audit.entityType}, ${audit.entityId}, ${JSON.stringify(audit.metadata)}::jsonb, ${audit.ipAddress}, ${audit.userAgent}, ${audit.createdAt})`,
+  ]);
   return data;
 }
 

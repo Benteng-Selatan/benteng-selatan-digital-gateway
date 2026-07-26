@@ -1,7 +1,8 @@
-import { isAuthenticated } from "@/lib/auth";
+import { requireAdminPermission } from "@/lib/auth";
 import { listStaffSubmissions } from "@/lib/portal";
 
 export async function GET() {
-  if (!(await isAuthenticated())) return Response.json({ message: "Tidak terautentikasi." }, { status: 401 });
+  const session = await requireAdminPermission("submissions:view");
+  if (!session) return Response.json({ message: "Akses ditolak." }, { status: 403 });
   return Response.json({ submissions: await listStaffSubmissions() });
 }

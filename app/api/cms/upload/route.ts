@@ -1,7 +1,8 @@
 import { put } from "@vercel/blob";
 import { extname } from "node:path";
 
-import { isAuthenticated } from "@/lib/auth";
+import { requireAdminPermission } from "@/lib/auth";
+import { auditContextFromRequest, recordAudit } from "@/lib/audit";
 
 const MAX_BYTES = 4 * 1024 * 1024;
 
@@ -81,7 +82,8 @@ function detectImageType(
 export async function POST(
   request: Request
 ): Promise<Response> {
-  if (!(await isAuthenticated())) {
+  const session = await requireAdminPermission("cms:edit");
+  if (!session) {
     return Response.json(
       {
         message: "Tidak terautentikasi.",
@@ -182,6 +184,15 @@ export async function POST(
         token: blobToken,
       }
     );
+
+    await recordAudit({
+      actor: session,
+      action: "cms.upload",
+      entityType: "blob",
+      entityId: blob.pathname,
+      metadata: { contentType: detectedType.mimeType, size: file.size },
+      context: auditContextFromRequest(request),
+    });
 
     return Response.json({
       url: blob.url,
