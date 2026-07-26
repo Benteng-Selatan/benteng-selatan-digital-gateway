@@ -23,7 +23,7 @@ import {
   type SubmissionStatus,
 } from "@/lib/portal-types";
 import { decryptSensitive, encryptSensitive, hashPassword, verifyPassword } from "@/lib/security";
-import type { MapLocation, StoryItem, UmkmItem } from "@/lib/types";
+import { STORY_CATEGORIES, STORY_TYPES, type MapLocation, type StoryItem, type UmkmItem } from "@/lib/types";
 
 function clean(value: unknown, max = 500): string {
   return typeof value === "string" ? value.trim().slice(0, max) : "";
@@ -59,7 +59,7 @@ function requestNumber(): string {
 }
 
 function submissionNumber(type: ContributionType): string {
-  const prefix = type === "umkm" ? "UMKM" : type === "tourism" ? "WIS" : "MAP";
+  const prefix = type === "umkm" ? "UMKM" : type === "tourism" ? "KBR" : "MAP";
   const date = new Date().toISOString().slice(0, 10).replaceAll("-", "");
   return `BS-${prefix}-${date}-${shortCode()}`;
 }
@@ -240,13 +240,17 @@ export async function createContentSubmission(citizenId: string, input: Record<s
     if (String(payload.name).length < 3 || String(payload.description).length < 20) throw new Error("Nama dan deskripsi UMKM belum lengkap.");
   } else if (type === "tourism") {
     payload.title = clean(input.title, 180);
-    payload.category = clean(input.category, 80);
+    const requestedCategory = clean(input.category, 80);
+    payload.category = STORY_CATEGORIES.includes(requestedCategory as (typeof STORY_CATEGORIES)[number]) ? requestedCategory : "Kegiatan Kelurahan";
+    const requestedType = clean(input.articleType, 30);
+    payload.articleType = STORY_TYPES.includes(requestedType as (typeof STORY_TYPES)[number]) ? requestedType : "article";
     payload.excerpt = clean(input.excerpt, 350);
-    payload.content = clean(input.content, 3000);
+    payload.content = clean(input.content, 5000);
+    payload.eventDate = clean(input.eventDate, 20);
     payload.generalLocation = clean(input.generalLocation, 250);
     payload.source = clean(input.source, 300);
     payload.image = safePublicUrl(input.image, true) || "/images/story-placeholder.svg";
-    if (String(payload.title).length < 3 || String(payload.content).length < 30) throw new Error("Judul dan uraian wisata/budaya belum lengkap.");
+    if (String(payload.title).length < 3 || String(payload.content).length < 30) throw new Error("Judul dan isi Kabar belum lengkap.");
   } else {
     payload.name = clean(input.name, 150);
     payload.category = clean(input.category, 80);
@@ -475,13 +479,17 @@ function applySubmissionPublication(
     const item: StoryItem = {
       id: itemId,
       slug: `${slugify(String(payload.title || itemId))}-${row.id.slice(0, 8)}`,
-      title: String(payload.title || "Potensi Lokal"),
-      category: String(payload.category || "Wisata & Budaya"),
+      title: String(payload.title || "Kabar Warga"),
+      category: String(payload.category || "Kegiatan Kelurahan"),
       excerpt: String(payload.excerpt || ""),
       content: String(payload.content || ""),
       image: String(payload.image || "/images/story-placeholder.svg"),
       generalLocation: String(payload.generalLocation || "Benteng Selatan"),
       source: String(payload.source || "Pengajuan warga, diverifikasi kelurahan"),
+      articleType: STORY_TYPES.includes(String(payload.articleType) as (typeof STORY_TYPES)[number]) ? String(payload.articleType) as StoryItem["articleType"] : "article",
+      publishedAt: new Date().toISOString().slice(0, 10),
+      eventDate: String(payload.eventDate || ""),
+      featured: false,
       status: "published",
     };
     next.stories.push(item);

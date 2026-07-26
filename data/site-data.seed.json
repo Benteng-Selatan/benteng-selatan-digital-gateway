@@ -104,30 +104,30 @@
   ],
   "socialStatistics": [
     {
-      "id": "sosial-001",
-      "category": "Penerima PKH",
-      "value": 0,
-      "description": "Angka belum diisi. Masukkan data agregat yang telah diverifikasi.",
-      "year": "",
-      "source": "",
+      "id": "sosial-pbi-jk",
+      "category": "Penerima PBI-JK",
+      "value": 1634,
+      "description": "Penerima PBI-JK berdasarkan rekap Agustus 2025.",
+      "year": "2025",
+      "source": "Rekap Data Kesejahteraan Kelurahan Benteng Selatan",
       "status": "published"
     },
     {
-      "id": "sosial-002",
-      "category": "Penerima BPNT",
-      "value": 0,
-      "description": "Angka belum diisi. Masukkan data agregat yang telah diverifikasi.",
-      "year": "",
-      "source": "",
+      "id": "sosial-pkh",
+      "category": "Terdata PKH",
+      "value": 620,
+      "description": "Gabungan kategori keluarga dan pengurus PKH periode Juli–September 2025.",
+      "year": "2025",
+      "source": "Rekap Data Kesejahteraan Kelurahan Benteng Selatan",
       "status": "published"
     },
     {
-      "id": "sosial-003",
-      "category": "Bantuan Lainnya",
-      "value": 0,
-      "description": "Angka belum diisi. Masukkan data agregat yang telah diverifikasi.",
-      "year": "",
-      "source": "",
+      "id": "sosial-sembako",
+      "category": "Terdata Sembako",
+      "value": 849,
+      "description": "Gabungan kategori keluarga dan pengurus Sembako periode Juli–September 2025.",
+      "year": "2025",
+      "source": "Rekap Data Kesejahteraan Kelurahan Benteng Selatan",
       "status": "published"
     }
   ],
@@ -221,26 +221,65 @@
       "id": "wisata-001",
       "slug": "cerita-lokal-benteng-selatan",
       "title": "Cerita Lokal Benteng Selatan",
-      "category": "Kearifan Lokal",
+      "category": "Wisata & Budaya",
       "excerpt": "Ruang untuk mendokumentasikan cerita, kebiasaan, dan nilai lokal yang telah diverifikasi.",
       "content": "Tuliskan cerita lokal berdasarkan sumber yang dapat dipertanggungjawabkan. Hindari narasi personal yang dapat mengarah pada identitas warga dan jangan memuat klaim sejarah yang belum diverifikasi.",
       "image": "/images/story-placeholder.svg",
       "generalLocation": "Benteng Selatan",
       "source": "Sumber belum diisi",
-      "status": "published"
+      "status": "published",
+      "articleType": "article",
+      "publishedAt": "2025-09-01",
+      "eventDate": "",
+      "featured": true
     },
     {
       "id": "wisata-002",
       "slug": "potensi-wisata-lokal",
       "title": "Potensi Wisata Lokal",
-      "category": "Potensi Wisata",
+      "category": "Wisata & Budaya",
       "excerpt": "Contoh artikel untuk menunjukkan tampilan konten wisata dan dokumentasi wilayah.",
       "content": "Konten ini masih berupa contoh. Perbarui dengan hasil pendataan dan dokumentasi yang telah mendapat izin publikasi.",
       "image": "/images/tourism-placeholder.svg",
       "generalLocation": "Benteng Selatan",
       "source": "Sumber belum diisi",
-      "status": "published"
+      "status": "published",
+      "articleType": "article",
+      "publishedAt": "2025-08-15",
+      "eventDate": "",
+      "featured": false
     }
   ],
-  "updatedAt": "2026-07-18T00:00:00.000Z"
+  "updatedAt": "2026-07-18T00:00:00.000Z",
+  "socialDashboard": {
+    "totalRecords": 2838,
+    "period": "Juli–September 2025",
+    "source": "Rekap Data Kesejahteraan Kelurahan Benteng Selatan",
+    "note": "PBI-JK menggunakan data Agustus 2025. PKH dan Sembako menggunakan data Juli–September 2025. Data ditampilkan secara agregat.",
+    "status": "published",
+    "pbiJk": {
+      "yes": 1634,
+      "no": 1204,
+      "period": "Agustus 2025"
+    },
+    "pkh": {
+      "no": 2218,
+      "family": 473,
+      "administrator": 147,
+      "period": "Juli–September 2025"
+    },
+    "sembako": {
+      "no": 1989,
+      "family": 632,
+      "administrator": 217,
+      "period": "Juli–September 2025"
+    },
+    "deciles": {
+      "d1": 461,
+      "d2": 486,
+      "d3": 633,
+      "d4": 608,
+      "d5": 650
+    }
+  }
 }

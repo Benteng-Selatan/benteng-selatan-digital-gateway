@@ -32,7 +32,7 @@ Hasil:
 * [x] Halaman kesejahteraan dapat dibuka.
 * [x] Halaman UMKM dapat dibuka.
 * [x] Halaman peta dapat dibuka.
-* [x] Halaman wisata dan budaya dapat dibuka.
+* [x] Halaman Kabar dapat dibuka.
 * [x] Halaman kontak dapat dibuka.
 * [x] Navigasi website berjalan normal.
 

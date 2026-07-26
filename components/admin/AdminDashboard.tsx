@@ -4,7 +4,7 @@ import {
   Building2,
   Check,
   FileText,
-  Globe2,
+  Newspaper,
   HeartHandshake,
   ImageUp,
   LayoutDashboard,
@@ -19,6 +19,8 @@ import {
 import { ChangeEvent, ReactNode, useMemo, useState } from "react";
 import { AdminToolbar } from "@/components/admin/AdminToolbar";
 import type { PublicAdminSession } from "@/lib/auth";
+import { formatPercentage, socialDashboardTotals, validateSocialDashboard } from "@/lib/social-dashboard";
+import { STORY_CATEGORIES, STORY_TYPES } from "@/lib/types";
 import type {
   ContactData,
   MapLocation,
@@ -28,8 +30,9 @@ import type {
   SiteData,
   SiteSettings,
   SocialContent,
-  SocialStatistic,
+  SocialDashboard,
   StoryItem,
+  StoryType,
   UmkmItem
 } from "@/lib/types";
 
@@ -42,7 +45,7 @@ const tabItems: { key: TabKey; label: string; icon: typeof LayoutDashboard }[] =
   { key: "social", label: "Kesejahteraan", icon: HeartHandshake },
   { key: "umkm", label: "UMKM", icon: Store },
   { key: "map", label: "Peta Digital", icon: MapPinned },
-  { key: "stories", label: "Wisata & Budaya", icon: Globe2 },
+  { key: "stories", label: "Kabar", icon: Newspaper },
   { key: "contact", label: "Kontak", icon: UserRoundCog }
 ];
 
@@ -81,6 +84,17 @@ function Textarea({ label, value, onChange, help, rows = 4 }: {
 
 function SelectStatus({ value, onChange }: { value: PublishStatus; onChange: (value: PublishStatus) => void }) {
   return <div className="field"><label>Status publikasi</label><select value={value} onChange={(event) => onChange(event.target.value as PublishStatus)}><option value="published">Terbit</option><option value="draft">Draft</option></select></div>;
+}
+
+function SelectField({ label, value, options, onChange, help }: {
+  label: string;
+  value: string;
+  options: readonly { value: string; label: string }[];
+  onChange: (value: string) => void;
+  help?: string;
+}) {
+  const hasCurrentValue = options.some((option) => option.value === value);
+  return <div className="field"><label>{label}</label><select value={value} onChange={(event) => onChange(event.target.value)}>{!hasCurrentValue ? <option value={value}>{value}</option> : null}{options.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}</select>{help ? <small>{help}</small> : null}</div>;
 }
 
 function StatusBadge({ value }: { value: PublishStatus }) {
@@ -157,18 +171,29 @@ export function AdminDashboard({ initialData, user }: { initialData: SiteData; u
     map: data.mapLocations.length,
     stories: data.stories.length
   }), [data]);
+  const socialErrors = useMemo(() => validateSocialDashboard(data.socialDashboard), [data.socialDashboard]);
+  const socialTotals = useMemo(() => socialDashboardTotals(data.socialDashboard), [data.socialDashboard]);
 
   function updateSite<K extends keyof SiteSettings>(key: K, value: SiteSettings[K]) { setData((current) => ({ ...current, site: { ...current.site, [key]: value } })); }
   function updateProfile<K extends keyof ProfileData>(key: K, value: ProfileData[K]) { setData((current) => ({ ...current, profile: { ...current.profile, [key]: value } })); }
   function updateContact<K extends keyof ContactData>(key: K, value: ContactData[K]) { setData((current) => ({ ...current, contact: { ...current.contact, [key]: value } })); }
   function updateSocialContent<K extends keyof SocialContent>(key: K, value: SocialContent[K]) { setData((current) => ({ ...current, socialContent: { ...current.socialContent, [key]: value } })); }
+  function updateSocialDashboard<K extends keyof SocialDashboard>(key: K, value: SocialDashboard[K]) { setData((current) => ({ ...current, socialDashboard: { ...current.socialDashboard, [key]: value } })); }
+  function updatePbiJk<K extends keyof SocialDashboard["pbiJk"]>(key: K, value: SocialDashboard["pbiJk"][K]) { setData((current) => ({ ...current, socialDashboard: { ...current.socialDashboard, pbiJk: { ...current.socialDashboard.pbiJk, [key]: value } } })); }
+  function updatePkh<K extends keyof SocialDashboard["pkh"]>(key: K, value: SocialDashboard["pkh"][K]) { setData((current) => ({ ...current, socialDashboard: { ...current.socialDashboard, pkh: { ...current.socialDashboard.pkh, [key]: value } } })); }
+  function updateSembako<K extends keyof SocialDashboard["sembako"]>(key: K, value: SocialDashboard["sembako"][K]) { setData((current) => ({ ...current, socialDashboard: { ...current.socialDashboard, sembako: { ...current.socialDashboard.sembako, [key]: value } } })); }
+  function updateDecile<K extends keyof SocialDashboard["deciles"]>(key: K, value: SocialDashboard["deciles"][K]) { setData((current) => ({ ...current, socialDashboard: { ...current.socialDashboard, deciles: { ...current.socialDashboard.deciles, [key]: value } } })); }
   function updateService(index: number, patch: Partial<ServiceItem>) { setData((current) => ({ ...current, services: current.services.map((item, itemIndex) => itemIndex === index ? { ...item, ...patch } : item) })); }
-  function updateSocial(index: number, patch: Partial<SocialStatistic>) { setData((current) => ({ ...current, socialStatistics: current.socialStatistics.map((item, itemIndex) => itemIndex === index ? { ...item, ...patch } : item) })); }
   function updateUmkm(index: number, patch: Partial<UmkmItem>) { setData((current) => ({ ...current, umkm: current.umkm.map((item, itemIndex) => itemIndex === index ? { ...item, ...patch } : item) })); }
   function updateMap(index: number, patch: Partial<MapLocation>) { setData((current) => ({ ...current, mapLocations: current.mapLocations.map((item, itemIndex) => itemIndex === index ? { ...item, ...patch } : item) })); }
   function updateStory(index: number, patch: Partial<StoryItem>) { setData((current) => ({ ...current, stories: current.stories.map((item, itemIndex) => itemIndex === index ? { ...item, ...patch } : item) })); }
 
   async function save() {
+    if (data.socialDashboard.status === "published" && socialErrors.length) {
+      setTab("social");
+      setSaveStatus(`Data kesejahteraan belum valid: ${socialErrors[0]}`);
+      return;
+    }
     setSaving(true);
     setSaveStatus("Menyimpan perubahan...");
     try {
@@ -185,10 +210,9 @@ export function AdminDashboard({ initialData, user }: { initialData: SiteData; u
   }
 
   function addService() { setData((current) => ({ ...current, services: [...current.services, { id: generateId("layanan"), slug: "layanan-baru", name: "Layanan Baru", shortDescription: "", requirements: [], steps: [], serviceHours: "", location: "", contact: "", note: "", status: "draft" }] })); }
-  function addSocial() { setData((current) => ({ ...current, socialStatistics: [...current.socialStatistics, { id: generateId("sosial"), category: "Kategori Baru", value: 0, description: "", year: "", source: "", status: "draft" }] })); }
   function addUmkm() { setData((current) => ({ ...current, umkm: [...current.umkm, { id: generateId("umkm"), slug: "umkm-baru", name: "UMKM Baru", category: "Lainnya", featuredProduct: "", description: "", image: "/images/umkm-placeholder.svg", publicContact: "", contactApproved: false, generalLocation: "Benteng Selatan", instagram: "", marketplace: "", status: "draft" }] })); }
   function addMap() { setData((current) => ({ ...current, mapLocations: [...current.mapLocations, { id: generateId("peta"), name: "Lokasi Baru", category: "Fasilitas Umum", description: "", latitude: null, longitude: null, generalLocation: "Benteng Selatan", mapsUrl: "", status: "draft" }] })); }
-  function addStory() { setData((current) => ({ ...current, stories: [...current.stories, { id: generateId("cerita"), slug: "cerita-baru", title: "Cerita Baru", category: "Kearifan Lokal", excerpt: "", content: "", image: "/images/story-placeholder.svg", generalLocation: "Benteng Selatan", source: "", status: "draft" }] })); }
+  function addStory() { setData((current) => ({ ...current, stories: [...current.stories, { id: generateId("kabar"), slug: "kabar-baru", title: "Kabar Baru", category: "Kegiatan Kelurahan", excerpt: "", content: "", image: "/images/story-placeholder.svg", generalLocation: "Benteng Selatan", source: "Kelurahan Benteng Selatan", articleType: "article", publishedAt: new Date().toISOString().slice(0, 10), eventDate: "", featured: false, status: "draft" }] })); }
 
   return (
     <div className="admin-shell">
@@ -199,7 +223,7 @@ export function AdminDashboard({ initialData, user }: { initialData: SiteData; u
           <div className="admin-page-heading"><h1>{tabItems.find((item) => item.key === tab)?.label}</h1><p>Kelola konten, status publikasi, dan informasi yang muncul pada portal.</p></div>
 
           {tab === "overview" ? <>
-            <div className="stats-grid"><article><FileText size={25} /><strong>{counts.services}</strong><span>Layanan</span></article><article><Store size={25} /><strong>{counts.umkm}</strong><span>UMKM</span></article><article><MapPinned size={25} /><strong>{counts.map}</strong><span>Lokasi peta</span></article><article><Globe2 size={25} /><strong>{counts.stories}</strong><span>Cerita lokal</span></article></div>
+            <div className="stats-grid"><article><FileText size={25} /><strong>{counts.services}</strong><span>Layanan</span></article><article><Store size={25} /><strong>{counts.umkm}</strong><span>UMKM</span></article><article><MapPinned size={25} /><strong>{counts.map}</strong><span>Lokasi peta</span></article><article><Newspaper size={25} /><strong>{counts.stories}</strong><span>Artikel Kabar</span></article></div>
             <section className="admin-panel" style={{ marginTop: 20 }}><div className="admin-panel-header"><div><h2>Status konten</h2><p>Konten draft tetap tersimpan tetapi tidak muncul pada website publik.</p></div></div><div className="two-column-content"><article className="notice success"><Check size={20} /><div><strong>Data aktif</strong><p>Database: PostgreSQL</p></div></article><article className="notice"><ImageUp size={20} /><div><strong>Media Cloud</strong><p>Penyimpanan: Vercel Blob</p></div></article></div></section>
           </> : null}
 
@@ -241,14 +265,41 @@ export function AdminDashboard({ initialData, user }: { initialData: SiteData; u
           </div></ListPanel>)}</div></section> : null}
 
           {tab === "social" ? <>
-            <section className="admin-panel"><div className="admin-panel-header"><div><h2>Statistik agregat</h2><p>Jangan masukkan nama, NIK, alamat, atau data individual warga.</p></div><button type="button" className="button button-outline" onClick={addSocial}><Plus size={17} /> Tambah statistik</button></div><div className="admin-list">{data.socialStatistics.map((item, index) => <ListPanel key={item.id} title={item.category} subtitle={`${item.value.toLocaleString("id-ID")} · ${item.year || "tahun belum diisi"}`} status={item.status} onDelete={() => setData((current) => ({ ...current, socialStatistics: current.socialStatistics.filter((_, itemIndex) => itemIndex !== index) }))}><div className="admin-grid">
-              <Input label="Kategori" value={item.category} onChange={(value) => updateSocial(index, { category: value })} />
-              <Input label="Jumlah agregat" type="number" value={item.value} onChange={(value) => updateSocial(index, { value: Number(value) || 0 })} />
-              <Textarea label="Keterangan" value={item.description} onChange={(value) => updateSocial(index, { description: value })} />
-              <Input label="Tahun data" value={item.year} onChange={(value) => updateSocial(index, { year: value })} />
-              <Input label="Sumber data" value={item.source} onChange={(value) => updateSocial(index, { source: value })} />
-              <SelectStatus value={item.status} onChange={(value) => updateSocial(index, { status: value })} />
-            </div></ListPanel>)}</div></section>
+            <section className="admin-panel"><div className="admin-panel-header"><div><h2>Dashboard bantuan dan desil</h2><p>Data awal telah diisi dari spreadsheet Benteng Selatan. Persentase dihitung otomatis dan data individu tidak disimpan di bagian ini.</p></div></div>
+              <div className="admin-grid">
+                <Input label="Total basis data" type="number" value={data.socialDashboard.totalRecords} onChange={(value) => updateSocialDashboard("totalRecords", Number(value) || 0)} help="Menjadi pembagi seluruh persentase." />
+                <Input label="Periode umum" value={data.socialDashboard.period} onChange={(value) => updateSocialDashboard("period", value)} />
+                <Input label="Sumber data" value={data.socialDashboard.source} onChange={(value) => updateSocialDashboard("source", value)} />
+                <SelectStatus value={data.socialDashboard.status} onChange={(value) => updateSocialDashboard("status", value)} />
+                <Textarea label="Catatan periode/metodologi" value={data.socialDashboard.note} onChange={(value) => updateSocialDashboard("note", value)} />
+              </div>
+              <div className={`notice compact ${socialErrors.length ? "warning" : "success"}`}><div><strong>{socialErrors.length ? "Periksa konsistensi data" : "Seluruh jumlah sesuai total"}</strong>{socialErrors.length ? <ul className="check-list">{socialErrors.map((error) => <li key={error}>{error}</li>)}</ul> : <p>PBI-JK, PKH, Sembako, dan Desil masing-masing berjumlah {data.socialDashboard.totalRecords.toLocaleString("id-ID")} data.</p>}</div></div>
+            </section>
+
+            <section className="admin-panel"><div className="admin-panel-header"><div><h2>PBI-JK</h2><p>Persentase penerima: {formatPercentage(data.socialDashboard.pbiJk.yes, data.socialDashboard.totalRecords)}.</p></div></div><div className="admin-grid">
+              <Input label="Ya / penerima" type="number" value={data.socialDashboard.pbiJk.yes} onChange={(value) => updatePbiJk("yes", Number(value) || 0)} />
+              <Input label="Tidak" type="number" value={data.socialDashboard.pbiJk.no} onChange={(value) => updatePbiJk("no", Number(value) || 0)} />
+              <Input label="Periode PBI-JK" value={data.socialDashboard.pbiJk.period} onChange={(value) => updatePbiJk("period", value)} />
+            </div></section>
+
+            <section className="admin-panel"><div className="admin-panel-header"><div><h2>PKH</h2><p>Terdata sebagai keluarga atau pengurus: {socialTotals.pkhRecipients.toLocaleString("id-ID")} ({formatPercentage(socialTotals.pkhRecipients, data.socialDashboard.totalRecords)}).</p></div></div><div className="admin-grid">
+              <Input label="Tidak" type="number" value={data.socialDashboard.pkh.no} onChange={(value) => updatePkh("no", Number(value) || 0)} />
+              <Input label="Keluarga" type="number" value={data.socialDashboard.pkh.family} onChange={(value) => updatePkh("family", Number(value) || 0)} />
+              <Input label="Pengurus" type="number" value={data.socialDashboard.pkh.administrator} onChange={(value) => updatePkh("administrator", Number(value) || 0)} />
+              <Input label="Periode PKH" value={data.socialDashboard.pkh.period} onChange={(value) => updatePkh("period", value)} />
+            </div></section>
+
+            <section className="admin-panel"><div className="admin-panel-header"><div><h2>Sembako</h2><p>Terdata sebagai keluarga atau pengurus: {socialTotals.sembakoRecipients.toLocaleString("id-ID")} ({formatPercentage(socialTotals.sembakoRecipients, data.socialDashboard.totalRecords)}).</p></div></div><div className="admin-grid">
+              <Input label="Tidak" type="number" value={data.socialDashboard.sembako.no} onChange={(value) => updateSembako("no", Number(value) || 0)} />
+              <Input label="Keluarga" type="number" value={data.socialDashboard.sembako.family} onChange={(value) => updateSembako("family", Number(value) || 0)} />
+              <Input label="Pengurus" type="number" value={data.socialDashboard.sembako.administrator} onChange={(value) => updateSembako("administrator", Number(value) || 0)} />
+              <Input label="Periode Sembako" value={data.socialDashboard.sembako.period} onChange={(value) => updateSembako("period", value)} />
+            </div></section>
+
+            <section className="admin-panel"><div className="admin-panel-header"><div><h2>Klasifikasi desil</h2><p>Masukkan jumlah agregat untuk Desil 1 sampai Desil 5.</p></div></div><div className="admin-grid five-column-grid">
+              {(["d1", "d2", "d3", "d4", "d5"] as const).map((key, index) => <Input key={key} label={`Desil ${index + 1}`} type="number" value={data.socialDashboard.deciles[key]} onChange={(value) => updateDecile(key, Number(value) || 0)} help={formatPercentage(data.socialDashboard.deciles[key], data.socialDashboard.totalRecords)} />)}
+            </div></section>
+
             <section className="admin-panel"><div className="admin-panel-header"><div><h2>Narasi sosial</h2><p>Gunakan narasi anonim dan informasi rujukan umum.</p></div></div><div className="admin-grid">
               <Textarea label="Pengantar" value={data.socialContent.intro} onChange={(value) => updateSocialContent("intro", value)} />
               <Textarea label="Catatan privasi" value={data.socialContent.privacyNote} onChange={(value) => updateSocialContent("privacyNote", value)} />
@@ -285,16 +336,20 @@ export function AdminDashboard({ initialData, user }: { initialData: SiteData; u
             <SelectStatus value={item.status} onChange={(value) => updateMap(index, { status: value })} />
           </div></ListPanel>)}</div></section> : null}
 
-          {tab === "stories" ? <section className="admin-panel"><div className="admin-panel-header"><div><h2>Wisata dan kearifan lokal</h2><p>Cantumkan sumber dan hindari klaim sejarah yang belum diverifikasi.</p></div><button type="button" className="button button-outline" onClick={addStory}><Plus size={17} /> Tambah cerita</button></div><div className="admin-list">{data.stories.map((item, index) => <ListPanel key={item.id} title={item.title} subtitle={`${item.category} · ${item.generalLocation}`} status={item.status} onDelete={() => setData((current) => ({ ...current, stories: current.stories.filter((_, itemIndex) => itemIndex !== index) }))}><div className="admin-grid">
-            <Input label="Judul" value={item.title} onChange={(value) => updateStory(index, { title: value, slug: item.slug === "cerita-baru" ? slugify(value) : item.slug })} />
+          {tab === "stories" ? <section className="admin-panel"><div className="admin-panel-header"><div><h2>Kabar</h2><p>Kelola artikel, kegiatan, pengumuman, agenda, pembangunan, pelayanan, serta wisata dan budaya dalam satu kanal.</p></div><button type="button" className="button button-outline" onClick={addStory}><Plus size={17} /> Tambah Kabar</button></div><div className="admin-list">{data.stories.map((item, index) => <ListPanel key={item.id} title={item.title} subtitle={`${item.category} · ${item.publishedAt || "tanggal belum diisi"}`} status={item.status} onDelete={() => setData((current) => ({ ...current, stories: current.stories.filter((_, itemIndex) => itemIndex !== index) }))}><div className="admin-grid">
+            <Input label="Judul" value={item.title} onChange={(value) => updateStory(index, { title: value, slug: item.slug === "kabar-baru" || item.slug === "cerita-baru" ? slugify(value) : item.slug })} />
             <Input label="Slug URL" value={item.slug} onChange={(value) => updateStory(index, { slug: slugify(value) })} />
-            <Input label="Kategori" value={item.category} onChange={(value) => updateStory(index, { category: value })} />
-            <Input label="Lokasi umum" value={item.generalLocation} onChange={(value) => updateStory(index, { generalLocation: value })} />
-            <Textarea label="Ringkasan" value={item.excerpt} onChange={(value) => updateStory(index, { excerpt: value })} />
-            <Textarea label="Isi cerita" rows={8} value={item.content} onChange={(value) => updateStory(index, { content: value })} />
+            <SelectField label="Jenis konten" value={item.articleType} options={STORY_TYPES.map((value) => ({ value, label: value === "article" ? "Artikel" : value === "announcement" ? "Pengumuman" : "Agenda" }))} onChange={(value) => updateStory(index, { articleType: value as StoryType })} />
+            <SelectField label="Kategori" value={item.category} options={STORY_CATEGORIES.map((value) => ({ value, label: value }))} onChange={(value) => updateStory(index, { category: value })} />
+            <Input label="Tanggal publikasi" type="date" value={item.publishedAt} onChange={(value) => updateStory(index, { publishedAt: value })} />
+            <Input label="Tanggal kegiatan (opsional)" type="date" value={item.eventDate} onChange={(value) => updateStory(index, { eventDate: value })} />
+            <Input label="Lokasi umum (opsional)" value={item.generalLocation} onChange={(value) => updateStory(index, { generalLocation: value })} />
             <Input label="Sumber informasi" value={item.source} onChange={(value) => updateStory(index, { source: value })} />
+            <Textarea label="Ringkasan" value={item.excerpt} onChange={(value) => updateStory(index, { excerpt: value })} />
+            <Textarea label="Isi Kabar" rows={8} value={item.content} onChange={(value) => updateStory(index, { content: value })} />
+            <div className="field"><label>Penempatan</label><label className="checkbox-field"><input type="checkbox" checked={item.featured} onChange={(event) => updateStory(index, { featured: event.target.checked })} /> Jadikan Kabar utama</label><small>Jika lebih dari satu dipilih, artikel terbaru yang tampil sebagai Kabar utama.</small></div>
             <SelectStatus value={item.status} onChange={(value) => updateStory(index, { status: value })} />
-            <ImageField label="Foto dokumentasi" value={item.image} onChange={(value) => updateStory(index, { image: value })} />
+            <ImageField label="Gambar sampul" value={item.image} onChange={(value) => updateStory(index, { image: value })} />
           </div></ListPanel>)}</div></section> : null}
 
           {tab === "contact" ? <section className="admin-panel"><div className="admin-panel-header"><div><h2>Kontak resmi</h2><p>Gunakan nomor, email, dan media sosial yang telah disetujui untuk publikasi.</p></div></div><div className="admin-grid">

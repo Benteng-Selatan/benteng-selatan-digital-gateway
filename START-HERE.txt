@@ -1,4 +1,4 @@
-BENTENG SELATAN DIGITAL GATEWAY 0.2.0 - MULAI DI SINI
+BENTENG SELATAN DIGITAL GATEWAY 0.3.0 - MULAI DI SINI
 
 PERSYARATAN
 - Node.js 22 direkomendasikan.
@@ -44,3 +44,10 @@ SEBELUM DEPLOYMENT
 4. Jalankan npm run check.
 5. Jalankan npm run content:check-official.
 6. Uji Preview sesuai docs/HIGH_PRIORITY_TEST_PLAN.md.
+
+PEMBARUAN 0.3.0
+- Menu publik Wisata & Budaya sekarang bernama Kabar; route /wisata tetap dipertahankan.
+- Halaman /kesejahteraan menampilkan PBI-JK, PKH, Sembako, dan Desil 1–5.
+- Data awal diisi dari Sheet 2 Benteng Selatan.xlsx.
+- Tidak ada tabel database baru; data CMS lama dinormalisasi otomatis.
+- Baca docs/KABAR_KESEJAHTERAAN.md sebelum integrasi.

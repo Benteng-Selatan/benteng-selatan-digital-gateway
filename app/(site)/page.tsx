@@ -2,6 +2,7 @@ import Link from "next/link";
 import {
   ArrowRight,
   Building2,
+  CalendarDays,
   FileText,
   HeartHandshake,
   Landmark,
@@ -12,20 +13,37 @@ import {
 } from "lucide-react";
 import { SectionHeading } from "@/components/public/SectionHeading";
 import { getSiteData } from "@/lib/cms";
+import { formatPercentage, socialDashboardTotals } from "@/lib/social-dashboard";
 
 export const dynamic = "force-dynamic";
+
+function storyTimestamp(value: string) {
+  const time = value ? new Date(`${value}T00:00:00`).getTime() : 0;
+  return Number.isNaN(time) ? 0 : time;
+}
+
+function displayDate(value: string) {
+  if (!value) return "Tanggal belum diisi";
+  const date = new Date(`${value}T00:00:00`);
+  return Number.isNaN(date.getTime())
+    ? value
+    : date.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
+}
 
 export default async function HomePage() {
   const data = await getSiteData();
   const services = data.services.filter((item) => item.status === "published");
   const umkm = data.umkm.filter((item) => item.status === "published");
   const locations = data.mapLocations.filter((item) => item.status === "published");
-  const stories = data.stories.filter((item) => item.status === "published");
-  const social = data.socialStatistics.filter((item) => item.status === "published");
+  const stories = data.stories
+    .filter((item) => item.status === "published")
+    .sort((a, b) => storyTimestamp(b.publishedAt) - storyTimestamp(a.publishedAt));
+  const social = data.socialDashboard;
+  const socialTotals = socialDashboardTotals(social);
 
   const quickLinks = [
     { href: "/layanan", label: "Layanan Publik", description: "Syarat dan alur pelayanan", icon: FileText },
-    { href: "/kesejahteraan", label: "Kesejahteraan Sosial", description: "Statistik agregat dan rujukan", icon: HeartHandshake },
+    { href: "/kesejahteraan", label: "Kesejahteraan Sosial", description: "Persentase bantuan dan desil", icon: HeartHandshake },
     { href: "/umkm", label: "UMKM Lokal", description: "Direktori usaha dan produk", icon: Store },
     { href: "/peta", label: "Peta Digital", description: "Fasilitas dan potensi wilayah", icon: MapPinned },
     { href: "/kontak", label: "Kontak Kelurahan", description: "Kanal informasi resmi", icon: Building2 }
@@ -81,7 +99,7 @@ export default async function HomePage() {
             <article><FileText size={25} /><strong>{services.length}</strong><span>Layanan tersedia</span></article>
             <article><Store size={25} /><strong>{umkm.length}</strong><span>UMKM terdata</span></article>
             <article><MapPinned size={25} /><strong>{locations.length}</strong><span>Lokasi publik</span></article>
-            <article><Users size={25} /><strong>{stories.length}</strong><span>Cerita & potensi</span></article>
+            <article><Users size={25} /><strong>{stories.length}</strong><span>Artikel Kabar</span></article>
           </div>
         </div>
       </section>
@@ -110,26 +128,26 @@ export default async function HomePage() {
         <div className="container social-preview">
           <div>
             <span className="eyebrow light">Kesejahteraan Sosial</span>
-            <h2>Data agregat, bukan data individual.</h2>
+            <h2>Persentase bantuan dan desil dalam data agregat.</h2>
             <p>{data.socialContent.intro}</p>
             <Link href="/kesejahteraan" className="button button-light">Lihat informasi sosial <ArrowRight size={18} /></Link>
           </div>
           <div className="social-preview-stats">
-            {social.slice(0, 3).map((item) => (
-              <article key={item.id}><strong>{item.value.toLocaleString("id-ID")}</strong><span>{item.category}</span><small>{item.year || "Tahun belum diisi"}</small></article>
-            ))}
+            <article><strong>{formatPercentage(social.pbiJk.yes, social.totalRecords)}</strong><span>Penerima PBI-JK</span><small>{social.pbiJk.period}</small></article>
+            <article><strong>{formatPercentage(socialTotals.pkhRecipients, social.totalRecords)}</strong><span>Terdata PKH</span><small>{social.pkh.period}</small></article>
+            <article><strong>{formatPercentage(socialTotals.sembakoRecipients, social.totalRecords)}</strong><span>Terdata Sembako</span><small>{social.sembako.period}</small></article>
           </div>
         </div>
       </section>
 
       <section className="section">
         <div className="container">
-          <SectionHeading eyebrow="Cerita Wilayah" title="Wisata dan kearifan lokal" description="Dokumentasi potensi wilayah disajikan setelah sumber dan izin publikasinya diperiksa." href="/wisata" />
+          <SectionHeading eyebrow="Informasi Kelurahan" title="Kabar terbaru" description="Kegiatan, pengumuman, pelayanan, pembangunan, potensi, serta wisata dan budaya dalam satu kanal." href="/wisata" linkLabel="Lihat semua Kabar" />
           <div className="card-grid card-grid-2">
             {stories.slice(0, 2).map((story) => (
               <article className="story-card" key={story.id}>
                 <img src={story.image || "/images/story-placeholder.svg"} alt={story.title} />
-                <div><span className="category-label">{story.category}</span><h3>{story.title}</h3><p>{story.excerpt}</p><Link className="text-link" href={`/wisata/${story.slug}`}>Baca cerita <ArrowRight size={16} /></Link></div>
+                <div><span className="category-label">{story.category}</span><h3>{story.title}</h3><p>{story.excerpt}</p><small className="card-meta"><CalendarDays size={15} /> {displayDate(story.publishedAt)}</small><Link className="text-link" href={`/wisata/${story.slug}`}>Baca Kabar <ArrowRight size={16} /></Link></div>
               </article>
             ))}
           </div>

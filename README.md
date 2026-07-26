@@ -6,7 +6,7 @@ Portal publik dan layanan warga Kelurahan Benteng Selatan berbasis **Next.js 16*
 
 ### Portal publik
 
-- Beranda, profil, layanan, kesejahteraan, UMKM, peta, wisata/budaya, dan kontak.
+- Beranda, profil, layanan, dashboard kesejahteraan, UMKM, peta, Kabar, dan kontak.
 - CMS dengan status `draft` dan `published`.
 - Upload media publik melalui Vercel Blob.
 - Peta multi-marker berbasis Leaflet.
@@ -18,7 +18,7 @@ Portal publik dan layanan warga Kelurahan Benteng Selatan berbasis **Next.js 16*
 - Pengajuan pilot **Surat Keterangan Usaha**.
 - Status pengajuan, riwayat status, pesan warga–petugas, dan catatan internal petugas.
 - NIK dan nomor KK disimpan dalam bentuk terenkripsi AES-256-GCM.
-- Kontribusi warga untuk UMKM, wisata/budaya, dan lokasi peta.
+- Kontribusi warga untuk UMKM, Kabar/kegiatan, dan lokasi peta.
 - Moderasi petugas; kontribusi berstatus `published` otomatis masuk ke CMS publik.
 
 ### Portal petugas

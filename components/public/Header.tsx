@@ -12,7 +12,7 @@ const navigation = [
   ["Sosial", "/kesejahteraan"],
   ["UMKM & Potensi", "/umkm"],
   ["Peta", "/peta"],
-  ["Wisata & Budaya", "/wisata"],
+  ["Kabar", "/wisata"],
   ["Kontak", "/kontak"]
 ] as const;
 

@@ -11,7 +11,7 @@
 - [x] Pengajuan pilot Surat Keterangan Usaha.
 - [x] Enkripsi NIK dan nomor KK.
 - [x] Alur status, riwayat, pesan warga–petugas, serta catatan internal.
-- [x] Pengajuan UMKM, wisata/budaya, dan lokasi peta.
+- [x] Pengajuan UMKM, Kabar/kegiatan, dan lokasi peta.
 - [x] Moderasi petugas dan publikasi kontribusi ke CMS.
 - [x] Build, TypeScript, dan ESLint valid.
 

@@ -36,7 +36,7 @@ export type ContributionType = (typeof CONTRIBUTION_TYPES)[number];
 
 export const CONTRIBUTION_TYPE_LABELS: Record<ContributionType, string> = {
   umkm: "UMKM",
-  tourism: "Wisata & budaya",
+  tourism: "Kabar / kegiatan",
   map: "Lokasi peta",
 };
 

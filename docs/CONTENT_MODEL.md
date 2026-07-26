@@ -9,11 +9,12 @@ File JSON hanya digunakan sebagai data awal atau keperluan migrasi, bukan sebaga
 - `profile`: profil wilayah, masyarakat, potensi, fasilitas, dan pemerintahan.
 - `contact`: alamat dan kanal resmi.
 - `services`: informasi layanan publik.
-- `socialStatistics`: statistik sosial agregat.
+- `socialStatistics`: statistik sosial agregat lama untuk kompatibilitas.
+- `socialDashboard`: total basis data, PBI-JK, PKH, Sembako, dan klasifikasi Desil 1–5.
 - `socialContent`: narasi anonim, alur, rekomendasi, dan catatan privasi.
 - `umkm`: direktori usaha dengan kontrol izin kontak.
 - `mapLocations`: titik fasilitas dan potensi yang aman dipublikasikan.
-- `stories`: wisata, budaya, sejarah, dan kearifan lokal.
+- `stories`: kanal **Kabar** untuk artikel, kegiatan, pengumuman, agenda, pelayanan, pembangunan, UMKM, prestasi, wisata, dan budaya.
 
 Setiap konten dinamis memiliki `status`:
 
