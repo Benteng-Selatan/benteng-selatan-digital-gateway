@@ -296,19 +296,25 @@ export async function listCitizenSubmissions(citizenId: string) {
 
 export async function listStaffRequests() {
   const rows = await db
-    .select({ request: serviceRequests, citizenEmail: citizenUsers.email })
+    .select({
+      id: serviceRequests.id,
+      requestNumber: serviceRequests.requestNumber,
+      status: serviceRequests.status,
+      applicantName: serviceRequests.applicantName,
+      citizenEmail: citizenUsers.email,
+      submittedAt: serviceRequests.submittedAt,
+      updatedAt: serviceRequests.updatedAt,
+    })
     .from(serviceRequests)
     .leftJoin(citizenUsers, eq(serviceRequests.citizenId, citizenUsers.id))
     .orderBy(desc(serviceRequests.updatedAt));
-  return rows.map(({ request, citizenEmail }) => ({
-    ...request,
-    citizenEmail: citizenEmail || "",
-    identityNumber: decryptSensitive(request.identityNumberEncrypted),
-    familyCardNumber: decryptSensitive(request.familyCardNumberEncrypted),
-    status: request.status as ServiceRequestStatus,
-    submittedAt: request.submittedAt.toISOString(),
-    updatedAt: request.updatedAt.toISOString(),
-    completedAt: request.completedAt?.toISOString() || null,
+
+  return rows.map((row) => ({
+    ...row,
+    citizenEmail: row.citizenEmail || "",
+    status: row.status as ServiceRequestStatus,
+    submittedAt: row.submittedAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
   }));
 }
 
