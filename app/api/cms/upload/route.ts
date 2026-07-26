@@ -3,23 +3,11 @@ import { extname } from "node:path";
 
 import { isAuthenticated } from "@/lib/auth";
 
-const allowedTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
-
-// Vercel Functions memiliki batas request sekitar 4,5 MB.
-// Gunakan 4 MB agar tersedia margin untuk request.
 const MAX_BYTES = 4 * 1024 * 1024;
 
-function getFallbackExtension(contentType: string): string {
-  switch (contentType) {
-    case "image/png":
-      return ".png";
-
-    case "image/webp":
-      return ".webp";
-
-    default:
-      return ".jpg";
-  }
+interface DetectedImageType {
+  mimeType: "image/jpeg" | "image/png" | "image/webp";
+  extension: ".jpg" | ".png" | ".webp";
 }
 
 function sanitizeFilename(filename: string): string {
@@ -35,7 +23,64 @@ function sanitizeFilename(filename: string): string {
   return baseName || "gambar";
 }
 
-export async function POST(request: Request): Promise<Response> {
+function detectImageType(
+  bytes: Uint8Array
+): DetectedImageType | null {
+  const isJpeg =
+    bytes.length >= 3 &&
+    bytes[0] === 0xff &&
+    bytes[1] === 0xd8 &&
+    bytes[2] === 0xff;
+
+  if (isJpeg) {
+    return {
+      mimeType: "image/jpeg",
+      extension: ".jpg",
+    };
+  }
+
+  const isPng =
+    bytes.length >= 8 &&
+    bytes[0] === 0x89 &&
+    bytes[1] === 0x50 &&
+    bytes[2] === 0x4e &&
+    bytes[3] === 0x47 &&
+    bytes[4] === 0x0d &&
+    bytes[5] === 0x0a &&
+    bytes[6] === 0x1a &&
+    bytes[7] === 0x0a;
+
+  if (isPng) {
+    return {
+      mimeType: "image/png",
+      extension: ".png",
+    };
+  }
+
+  const isWebp =
+    bytes.length >= 12 &&
+    bytes[0] === 0x52 &&
+    bytes[1] === 0x49 &&
+    bytes[2] === 0x46 &&
+    bytes[3] === 0x46 &&
+    bytes[8] === 0x57 &&
+    bytes[9] === 0x45 &&
+    bytes[10] === 0x42 &&
+    bytes[11] === 0x50;
+
+  if (isWebp) {
+    return {
+      mimeType: "image/webp",
+      extension: ".webp",
+    };
+  }
+
+  return null;
+}
+
+export async function POST(
+  request: Request
+): Promise<Response> {
   if (!(await isAuthenticated())) {
     return Response.json(
       {
@@ -43,7 +88,7 @@ export async function POST(request: Request): Promise<Response> {
       },
       {
         status: 401,
-      },
+      }
     );
   }
 
@@ -58,18 +103,7 @@ export async function POST(request: Request): Promise<Response> {
         },
         {
           status: 400,
-        },
-      );
-    }
-
-    if (!allowedTypes.has(file.type)) {
-      return Response.json(
-        {
-          message: "Format gambar harus JPG, PNG, atau WEBP.",
-        },
-        {
-          status: 400,
-        },
+        }
       );
     }
 
@@ -80,7 +114,7 @@ export async function POST(request: Request): Promise<Response> {
         },
         {
           status: 400,
-        },
+        }
       );
     }
 
@@ -91,41 +125,68 @@ export async function POST(request: Request): Promise<Response> {
         },
         {
           status: 400,
-        },
+        }
       );
     }
 
-    const extension =
-      extname(file.name).toLowerCase() || getFallbackExtension(file.type);
+    const bytes = new Uint8Array(
+      await file.arrayBuffer()
+    );
 
-    const safeBaseName = sanitizeFilename(file.name);
+    const detectedType = detectImageType(bytes);
 
-    const year = new Date().getFullYear();
+    if (!detectedType) {
+      return Response.json(
+        {
+          message:
+            "Isi file harus berupa gambar JPG, PNG, atau WEBP yang valid.",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
 
-    const pathname = `cms/${year}/${Date.now()}-${safeBaseName}${extension}`;
-
-    const blobToken = process.env.BLOB_READ_WRITE_TOKEN;
+    const blobToken =
+      process.env.BLOB_READ_WRITE_TOKEN;
 
     if (!blobToken) {
       return Response.json(
         {
-          message: "Konfigurasi penyimpanan gambar belum tersedia.",
+          message:
+            "Konfigurasi penyimpanan gambar belum tersedia.",
         },
         {
           status: 500,
-        },
+        }
       );
     }
-    const blob = await put(pathname, file, {
-      access: "public",
-      addRandomSuffix: true,
-      token: blobToken,
+
+    const safeBaseName = sanitizeFilename(file.name);
+    const year = new Date().getFullYear();
+
+    const pathname =
+      `cms/${year}/${Date.now()}-` +
+      `${safeBaseName}${detectedType.extension}`;
+
+    const validatedImage = new Blob([bytes], {
+      type: detectedType.mimeType,
     });
+
+    const blob = await put(
+      pathname,
+      validatedImage,
+      {
+        access: "public",
+        addRandomSuffix: true,
+        token: blobToken,
+      }
+    );
 
     return Response.json({
       url: blob.url,
       pathname: blob.pathname,
-      contentType: file.type,
+      contentType: detectedType.mimeType,
       size: file.size,
     });
   } catch (error: unknown) {
@@ -133,11 +194,12 @@ export async function POST(request: Request): Promise<Response> {
 
     return Response.json(
       {
-        message: "Gambar gagal diunggah ke penyimpanan.",
+        message:
+          "Gambar gagal diunggah ke penyimpanan.",
       },
       {
         status: 500,
-      },
+      }
     );
   }
 }
