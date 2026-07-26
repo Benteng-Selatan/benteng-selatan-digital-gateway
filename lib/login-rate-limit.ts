@@ -35,7 +35,7 @@ export function getRequestIpAddress(request: Request): string {
 }
 
 export function buildLoginRateLimitKey(
-  scope: "cms" | "citizen",
+  scope: "cms" | "citizen" | "citizen-register",
   identifier: string,
   request: Request
 ): string {
