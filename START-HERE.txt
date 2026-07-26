@@ -13,6 +13,10 @@ Akun lokal bawaan jika .env.local belum dibuat:
 Username: admin
 Password: admin123
 
-Data CMS tersimpan di data/site-data.json.
-Gambar upload tersimpan di public/uploads.
+Data aplikasi dan CMS tersimpan di database PostgreSQL Neon.
+Gambar hasil upload tersimpan di Vercel Blob.
+
+Koneksi database dan penyimpanan dikonfigurasi melalui file .env.local
+untuk pengembangan lokal dan melalui Environment Variables di Vercel
+untuk Preview dan Production.
 Baca README.md dan docs/PROJECT_STATUS.md sebelum pengembangan lanjutan.

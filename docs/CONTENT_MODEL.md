@@ -1,6 +1,9 @@
 # Model Konten
 
-Data utama tersimpan di `data/site-data.json`.
+Data utama aplikasi dan CMS tersimpan di database PostgreSQL Neon.
+
+Struktur data dikelola melalui schema database di folder `lib/db`.
+File JSON hanya digunakan sebagai data awal atau keperluan migrasi, bukan sebagai penyimpanan utama saat aplikasi berjalan.
 
 - `site`: identitas portal, hero, dan tombol utama.
 - `profile`: profil wilayah, masyarakat, potensi, fasilitas, dan pemerintahan.
