@@ -6,10 +6,19 @@ Portal publik dan layanan warga Kelurahan Benteng Selatan berbasis **Next.js 16*
 
 ### Portal publik
 
-- Beranda, profil, layanan, dashboard kesejahteraan, UMKM, peta, Kabar, dan kontak.
+- Beranda, profil, 10 layanan utama, dashboard kesejahteraan, UMKM, peta, Kabar, dan kontak.
 - CMS dengan status `draft` dan `published`.
 - Upload media publik melalui Vercel Blob.
 - Peta multi-marker berbasis Leaflet.
+
+
+### Pusat layanan dan BESTI
+
+- Website berfungsi sebagai pintu informasi layanan Kelurahan Benteng Selatan.
+- Sepuluh layanan utama ditampilkan sebagai daftar ringkas dan responsif.
+- Persyaratan, prosedur lengkap, serta pengajuan diarahkan ke `https://besti.is-best.net`.
+- URL BESTI dan kontak perangkat kelurahan dapat diperbarui melalui CMS.
+- Portal warga lama tidak dihapus agar data dan riwayat yang sudah tersimpan tetap aman.
 
 ### Portal warga MVP
 
@@ -109,7 +118,7 @@ npm run build
 - Belum ada tanda tangan elektronik.
 - CMS utama masih menggunakan satu dokumen JSONB, tetapi perubahan publikasi kontribusi dan status submission kini ditulis secara transaksional.
 
-Integrasi eksternal ditunda sampai alur transaksi inti stabil dan teruji.
+Integrasi BESTI pada v0.4.0 menggunakan tautan eksternal yang stabil. Integrasi API, SSO, dan sinkronisasi status tetap ditunda sampai tersedia dokumentasi teknis resmi.
 
 
 ## Dokumentasi hardening lanjutan

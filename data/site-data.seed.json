@@ -8,7 +8,8 @@
     "primaryCtaLabel": "Lihat Layanan Publik",
     "primaryCtaHref": "/layanan",
     "secondaryCtaLabel": "Jelajahi Peta Digital",
-    "secondaryCtaHref": "/peta"
+    "secondaryCtaHref": "/peta",
+    "bestiUrl": "https://besti.is-best.net"
   },
   "profile": {
     "heading": "Mengenal Benteng Selatan",
@@ -38,67 +39,179 @@
     "whatsapp": "",
     "instagram": "",
     "facebook": "",
-    "mapsUrl": ""
+    "mapsUrl": "",
+    "officials": [
+      {
+        "id": "kontak-001",
+        "name": "Ahmad Munir, S.P.W.K.",
+        "role": "Lurah",
+        "phone": "081341679938"
+      },
+      {
+        "id": "kontak-002",
+        "name": "Syurlinda, S.E.",
+        "role": "Sekretaris",
+        "phone": "082239139790"
+      },
+      {
+        "id": "kontak-003",
+        "name": "Andi Misbahuddin, S.A.P.",
+        "role": "Kasi Pemberdayaan Masyarakat",
+        "phone": "082346756588"
+      },
+      {
+        "id": "kontak-004",
+        "name": "Fakhry Syaiful, S.T.",
+        "role": "Kasi Pemerintahan & Trantibum",
+        "phone": "085823060910"
+      },
+      {
+        "id": "kontak-005",
+        "name": "Marwati, S.E.",
+        "role": "Kasi Ekbang & Kesos",
+        "phone": "085397141782"
+      }
+    ]
   },
   "services": [
     {
-      "id": "layanan-001",
-      "slug": "surat-keterangan-domisili",
-      "name": "Surat Keterangan Domisili",
-      "shortDescription": "Informasi awal mengenai layanan surat keterangan domisili. Persyaratan resmi perlu diverifikasi oleh kelurahan.",
-      "requirements": [
-        "Data persyaratan belum diverifikasi",
-        "Perbarui daftar dokumen melalui CMS sebelum dipublikasikan sebagai informasi resmi"
-      ],
-      "steps": [
-        "Siapkan dokumen sesuai informasi resmi kelurahan",
-        "Datang ke lokasi pelayanan",
-        "Ikuti pemeriksaan dan proses administrasi"
-      ],
-      "serviceHours": "Mengikuti jam pelayanan kantor kelurahan",
+      "id": "layanan-besti-001",
+      "slug": "surat-keterangan-tidak-mampu",
+      "name": "Surat Keterangan Tidak Mampu (SKTM)",
+      "shortDescription": "Layanan surat keterangan untuk kebutuhan administrasi sosial dan keperluan lain sesuai ketentuan.",
+      "requirements": [],
+      "steps": [],
+      "serviceHours": "Mengikuti jam pelayanan Kantor Kelurahan Benteng Selatan",
       "location": "Kantor Kelurahan Benteng Selatan",
-      "contact": "Kontak resmi belum tersedia",
-      "note": "Website hanya menyediakan informasi dan tidak menerima pengajuan surat secara daring.",
+      "contact": "Hubungi kontak resmi kelurahan untuk informasi awal",
+      "note": "Persyaratan, prosedur lengkap, dan pengajuan tersedia melalui BESTI.",
+      "featured": true,
       "status": "published"
     },
     {
-      "id": "layanan-002",
+      "id": "layanan-besti-002",
       "slug": "surat-keterangan-usaha",
       "name": "Surat Keterangan Usaha",
-      "shortDescription": "Informasi awal layanan surat keterangan usaha bagi masyarakat dan pelaku UMKM.",
-      "requirements": [
-        "Data persyaratan belum diverifikasi",
-        "Konfirmasi kepada kantor kelurahan sebelum mengajukan layanan"
-      ],
-      "steps": [
-        "Periksa informasi persyaratan",
-        "Siapkan berkas",
-        "Datang ke kantor kelurahan"
-      ],
-      "serviceHours": "Mengikuti jam pelayanan kantor kelurahan",
+      "shortDescription": "Layanan surat keterangan bagi warga yang memiliki atau menjalankan kegiatan usaha.",
+      "requirements": [],
+      "steps": [],
+      "serviceHours": "Mengikuti jam pelayanan Kantor Kelurahan Benteng Selatan",
       "location": "Kantor Kelurahan Benteng Selatan",
-      "contact": "Kontak resmi belum tersedia",
-      "note": "Konten contoh untuk kebutuhan pengembangan lokal.",
+      "contact": "Hubungi kontak resmi kelurahan untuk informasi awal",
+      "note": "Persyaratan, prosedur lengkap, dan pengajuan tersedia melalui BESTI.",
+      "featured": true,
       "status": "published"
     },
     {
-      "id": "layanan-003",
-      "slug": "informasi-bantuan-sosial",
-      "name": "Informasi Bantuan Sosial",
-      "shortDescription": "Rujukan awal untuk memperoleh informasi umum mengenai layanan sosial dan bantuan yang tersedia.",
-      "requirements": [
-        "Persyaratan mengikuti program yang berlaku",
-        "Data individu tidak ditampilkan pada website"
-      ],
-      "steps": [
-        "Baca informasi program",
-        "Hubungi kanal rujukan resmi",
-        "Ikuti proses verifikasi oleh pihak berwenang"
-      ],
-      "serviceHours": "Mengikuti jam pelayanan kantor kelurahan",
+      "id": "layanan-besti-003",
+      "slug": "surat-keterangan-domisili",
+      "name": "Surat Keterangan Domisili",
+      "shortDescription": "Layanan keterangan domisili untuk kebutuhan administrasi warga.",
+      "requirements": [],
+      "steps": [],
+      "serviceHours": "Mengikuti jam pelayanan Kantor Kelurahan Benteng Selatan",
       "location": "Kantor Kelurahan Benteng Selatan",
-      "contact": "Kontak rujukan belum tersedia",
-      "note": "Tidak ada pendaftaran bantuan secara daring pada versi awal.",
+      "contact": "Hubungi kontak resmi kelurahan untuk informasi awal",
+      "note": "Persyaratan, prosedur lengkap, dan pengajuan tersedia melalui BESTI.",
+      "featured": true,
+      "status": "published"
+    },
+    {
+      "id": "layanan-besti-004",
+      "slug": "surat-keterangan-asal-usul",
+      "name": "Surat Keterangan Asal-Usul",
+      "shortDescription": "Layanan keterangan asal-usul untuk melengkapi kebutuhan administrasi tertentu.",
+      "requirements": [],
+      "steps": [],
+      "serviceHours": "Mengikuti jam pelayanan Kantor Kelurahan Benteng Selatan",
+      "location": "Kantor Kelurahan Benteng Selatan",
+      "contact": "Hubungi kontak resmi kelurahan untuk informasi awal",
+      "note": "Persyaratan, prosedur lengkap, dan pengajuan tersedia melalui BESTI.",
+      "featured": true,
+      "status": "published"
+    },
+    {
+      "id": "layanan-besti-005",
+      "slug": "surat-keterangan-ahli-waris",
+      "name": "Surat Keterangan Ahli Waris",
+      "shortDescription": "Layanan administrasi keterangan ahli waris sesuai dokumen dan ketentuan yang berlaku.",
+      "requirements": [],
+      "steps": [],
+      "serviceHours": "Mengikuti jam pelayanan Kantor Kelurahan Benteng Selatan",
+      "location": "Kantor Kelurahan Benteng Selatan",
+      "contact": "Hubungi kontak resmi kelurahan untuk informasi awal",
+      "note": "Persyaratan, prosedur lengkap, dan pengajuan tersedia melalui BESTI.",
+      "featured": true,
+      "status": "published"
+    },
+    {
+      "id": "layanan-besti-006",
+      "slug": "surat-keterangan-belum-mendapatkan-buku-nikah",
+      "name": "Surat Keterangan Belum Mendapatkan Buku Nikah",
+      "shortDescription": "Layanan keterangan bagi warga yang belum memperoleh buku nikah untuk keperluan administrasi.",
+      "requirements": [],
+      "steps": [],
+      "serviceHours": "Mengikuti jam pelayanan Kantor Kelurahan Benteng Selatan",
+      "location": "Kantor Kelurahan Benteng Selatan",
+      "contact": "Hubungi kontak resmi kelurahan untuk informasi awal",
+      "note": "Persyaratan, prosedur lengkap, dan pengajuan tersedia melalui BESTI.",
+      "featured": true,
+      "status": "published"
+    },
+    {
+      "id": "layanan-besti-007",
+      "slug": "surat-keterangan-pekerjaan",
+      "name": "Surat Keterangan Pekerjaan",
+      "shortDescription": "Layanan keterangan pekerjaan untuk melengkapi kebutuhan administrasi warga.",
+      "requirements": [],
+      "steps": [],
+      "serviceHours": "Mengikuti jam pelayanan Kantor Kelurahan Benteng Selatan",
+      "location": "Kantor Kelurahan Benteng Selatan",
+      "contact": "Hubungi kontak resmi kelurahan untuk informasi awal",
+      "note": "Persyaratan, prosedur lengkap, dan pengajuan tersedia melalui BESTI.",
+      "featured": true,
+      "status": "published"
+    },
+    {
+      "id": "layanan-besti-008",
+      "slug": "surat-pengantar-keterangan-hilang",
+      "name": "Surat Pengantar Keterangan Hilang",
+      "shortDescription": "Layanan surat pengantar untuk mendukung pengurusan dokumen atau barang yang hilang.",
+      "requirements": [],
+      "steps": [],
+      "serviceHours": "Mengikuti jam pelayanan Kantor Kelurahan Benteng Selatan",
+      "location": "Kantor Kelurahan Benteng Selatan",
+      "contact": "Hubungi kontak resmi kelurahan untuk informasi awal",
+      "note": "Persyaratan, prosedur lengkap, dan pengajuan tersedia melalui BESTI.",
+      "featured": true,
+      "status": "published"
+    },
+    {
+      "id": "layanan-besti-009",
+      "slug": "surat-keterangan-orang-yang-sama",
+      "name": "Surat Keterangan Orang yang Sama",
+      "shortDescription": "Layanan keterangan untuk menjelaskan perbedaan penulisan identitas yang merujuk pada orang yang sama.",
+      "requirements": [],
+      "steps": [],
+      "serviceHours": "Mengikuti jam pelayanan Kantor Kelurahan Benteng Selatan",
+      "location": "Kantor Kelurahan Benteng Selatan",
+      "contact": "Hubungi kontak resmi kelurahan untuk informasi awal",
+      "note": "Persyaratan, prosedur lengkap, dan pengajuan tersedia melalui BESTI.",
+      "featured": true,
+      "status": "published"
+    },
+    {
+      "id": "layanan-besti-010",
+      "slug": "surat-keterangan-domisili-kantor-organisasi",
+      "name": "Surat Keterangan Domisili Kantor/Organisasi",
+      "shortDescription": "Layanan keterangan domisili bagi kantor, lembaga, atau organisasi di wilayah kelurahan.",
+      "requirements": [],
+      "steps": [],
+      "serviceHours": "Mengikuti jam pelayanan Kantor Kelurahan Benteng Selatan",
+      "location": "Kantor Kelurahan Benteng Selatan",
+      "contact": "Hubungi kontak resmi kelurahan untuk informasi awal",
+      "note": "Persyaratan, prosedur lengkap, dan pengajuan tersedia melalui BESTI.",
+      "featured": true,
       "status": "published"
     }
   ],

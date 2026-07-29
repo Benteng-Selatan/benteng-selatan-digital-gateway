@@ -23,6 +23,7 @@ import { formatPercentage, socialDashboardTotals, validateSocialDashboard } from
 import { STORY_CATEGORIES, STORY_TYPES } from "@/lib/types";
 import type {
   ContactData,
+  ContactPerson,
   MapLocation,
   ProfileData,
   PublishStatus,
@@ -177,6 +178,7 @@ export function AdminDashboard({ initialData, user }: { initialData: SiteData; u
   function updateSite<K extends keyof SiteSettings>(key: K, value: SiteSettings[K]) { setData((current) => ({ ...current, site: { ...current.site, [key]: value } })); }
   function updateProfile<K extends keyof ProfileData>(key: K, value: ProfileData[K]) { setData((current) => ({ ...current, profile: { ...current.profile, [key]: value } })); }
   function updateContact<K extends keyof ContactData>(key: K, value: ContactData[K]) { setData((current) => ({ ...current, contact: { ...current.contact, [key]: value } })); }
+  function updateContactPerson(index: number, patch: Partial<ContactPerson>) { setData((current) => ({ ...current, contact: { ...current.contact, officials: current.contact.officials.map((item, itemIndex) => itemIndex === index ? { ...item, ...patch } : item) } })); }
   function updateSocialContent<K extends keyof SocialContent>(key: K, value: SocialContent[K]) { setData((current) => ({ ...current, socialContent: { ...current.socialContent, [key]: value } })); }
   function updateSocialDashboard<K extends keyof SocialDashboard>(key: K, value: SocialDashboard[K]) { setData((current) => ({ ...current, socialDashboard: { ...current.socialDashboard, [key]: value } })); }
   function updatePbiJk<K extends keyof SocialDashboard["pbiJk"]>(key: K, value: SocialDashboard["pbiJk"][K]) { setData((current) => ({ ...current, socialDashboard: { ...current.socialDashboard, pbiJk: { ...current.socialDashboard.pbiJk, [key]: value } } })); }
@@ -209,10 +211,11 @@ export function AdminDashboard({ initialData, user }: { initialData: SiteData; u
     }
   }
 
-  function addService() { setData((current) => ({ ...current, services: [...current.services, { id: generateId("layanan"), slug: "layanan-baru", name: "Layanan Baru", shortDescription: "", requirements: [], steps: [], serviceHours: "", location: "", contact: "", note: "", status: "draft" }] })); }
+  function addService() { setData((current) => ({ ...current, services: [...current.services, { id: generateId("layanan"), slug: "layanan-baru", name: "Layanan Baru", shortDescription: "", requirements: [], steps: [], serviceHours: "", location: "", contact: "", note: "", featured: false, status: "draft" }] })); }
   function addUmkm() { setData((current) => ({ ...current, umkm: [...current.umkm, { id: generateId("umkm"), slug: "umkm-baru", name: "UMKM Baru", category: "Lainnya", featuredProduct: "", description: "", image: "/images/umkm-placeholder.svg", publicContact: "", contactApproved: false, generalLocation: "Benteng Selatan", instagram: "", marketplace: "", status: "draft" }] })); }
   function addMap() { setData((current) => ({ ...current, mapLocations: [...current.mapLocations, { id: generateId("peta"), name: "Lokasi Baru", category: "Fasilitas Umum", description: "", latitude: null, longitude: null, generalLocation: "Benteng Selatan", mapsUrl: "", status: "draft" }] })); }
   function addStory() { setData((current) => ({ ...current, stories: [...current.stories, { id: generateId("kabar"), slug: "kabar-baru", title: "Kabar Baru", category: "Kegiatan Kelurahan", excerpt: "", content: "", image: "/images/story-placeholder.svg", generalLocation: "Benteng Selatan", source: "Kelurahan Benteng Selatan", articleType: "article", publishedAt: new Date().toISOString().slice(0, 10), eventDate: "", featured: false, status: "draft" }] })); }
+  function addContactPerson() { setData((current) => ({ ...current, contact: { ...current.contact, officials: [...current.contact.officials, { id: generateId("kontak"), name: "Nama Petugas", role: "Jabatan", phone: "" }] } })); }
 
   return (
     <div className="admin-shell">
@@ -237,6 +240,7 @@ export function AdminDashboard({ initialData, user }: { initialData: SiteData; u
               <Input label="URL tombol utama" value={data.site.primaryCtaHref} onChange={(value) => updateSite("primaryCtaHref", value)} />
               <Input label="Label tombol kedua" value={data.site.secondaryCtaLabel} onChange={(value) => updateSite("secondaryCtaLabel", value)} />
               <Input label="URL tombol kedua" value={data.site.secondaryCtaHref} onChange={(value) => updateSite("secondaryCtaHref", value)} />
+              <Input label="URL aplikasi BESTI" value={data.site.bestiUrl} onChange={(value) => updateSite("bestiUrl", value)} help="Gunakan URL lengkap, misalnya https://besti.is-best.net" />
               <ImageField label="Gambar hero" value={data.site.heroImage} onChange={(value) => updateSite("heroImage", value)} />
             </div></section>
             <section className="admin-panel"><div className="admin-panel-header"><div><h2>Profil kelurahan</h2><p>Konten utama halaman profil.</p></div></div><div className="admin-grid">
@@ -251,17 +255,20 @@ export function AdminDashboard({ initialData, user }: { initialData: SiteData; u
             </div></section>
           </> : null}
 
-          {tab === "services" ? <section className="admin-panel"><div className="admin-panel-header"><div><h2>Daftar layanan</h2><p>Persyaratan dan alur ditulis satu item per baris.</p></div><button type="button" className="button button-outline" onClick={addService}><Plus size={17} /> Tambah layanan</button></div><div className="admin-list">{data.services.map((item, index) => <ListPanel key={item.id} title={item.name} subtitle={item.shortDescription || "Belum ada deskripsi"} status={item.status} onDelete={() => setData((current) => ({ ...current, services: current.services.filter((_, itemIndex) => itemIndex !== index) }))}><div className="admin-grid">
+          {tab === "services" ? <section className="admin-panel"><div className="admin-panel-header"><div><h2>Daftar layanan</h2><p>Kelola nama dan deskripsi layanan utama. Persyaratan serta pengajuan lengkap diarahkan ke BESTI.</p></div><button type="button" className="button button-outline" onClick={addService}><Plus size={17} /> Tambah layanan</button></div><div className="admin-list">{data.services.map((item, index) => <ListPanel key={item.id} title={item.name} subtitle={item.shortDescription || "Belum ada deskripsi"} status={item.status} onDelete={() => setData((current) => ({ ...current, services: current.services.filter((_, itemIndex) => itemIndex !== index) }))}><div className="admin-grid">
             <Input label="Nama layanan" value={item.name} onChange={(value) => updateService(index, { name: value, slug: item.slug === "layanan-baru" ? slugify(value) : item.slug })} />
             <Input label="Slug URL" value={item.slug} onChange={(value) => updateService(index, { slug: slugify(value) })} />
             <Textarea label="Deskripsi singkat" value={item.shortDescription} onChange={(value) => updateService(index, { shortDescription: value })} />
-            <Textarea label="Persyaratan" value={item.requirements.join("\n")} onChange={(value) => updateService(index, { requirements: lines(value) })} />
-            <Textarea label="Alur pelayanan" value={item.steps.join("\n")} onChange={(value) => updateService(index, { steps: lines(value) })} />
-            <Input label="Jam pelayanan" value={item.serviceHours} onChange={(value) => updateService(index, { serviceHours: value })} />
-            <Input label="Lokasi" value={item.location} onChange={(value) => updateService(index, { location: value })} />
-            <Input label="Kontak resmi" value={item.contact} onChange={(value) => updateService(index, { contact: value })} />
-            <Textarea label="Catatan" value={item.note} onChange={(value) => updateService(index, { note: value })} />
+            <div className="field"><label>Penempatan</label><label className="checkbox-field"><input type="checkbox" checked={item.featured} onChange={(event) => updateService(index, { featured: event.target.checked })} /> Tampilkan sebagai layanan utama</label><small>Halaman publik menampilkan maksimal 10 layanan utama.</small></div>
             <SelectStatus value={item.status} onChange={(value) => updateService(index, { status: value })} />
+            <details className="admin-advanced full"><summary>Informasi tambahan/legacy</summary><div className="admin-grid">
+              <Textarea label="Persyaratan" value={item.requirements.join("\n")} onChange={(value) => updateService(index, { requirements: lines(value) })} help="Tidak ditampilkan pada daftar publik; prosedur utama berada di BESTI." />
+              <Textarea label="Alur pelayanan" value={item.steps.join("\n")} onChange={(value) => updateService(index, { steps: lines(value) })} help="Dipertahankan untuk kompatibilitas data lama." />
+              <Input label="Jam pelayanan" value={item.serviceHours} onChange={(value) => updateService(index, { serviceHours: value })} />
+              <Input label="Lokasi" value={item.location} onChange={(value) => updateService(index, { location: value })} />
+              <Input label="Kontak resmi" value={item.contact} onChange={(value) => updateService(index, { contact: value })} />
+              <Textarea label="Catatan" value={item.note} onChange={(value) => updateService(index, { note: value })} />
+            </div></details>
           </div></ListPanel>)}</div></section> : null}
 
           {tab === "social" ? <>
@@ -352,16 +359,25 @@ export function AdminDashboard({ initialData, user }: { initialData: SiteData; u
             <ImageField label="Gambar sampul" value={item.image} onChange={(value) => updateStory(index, { image: value })} />
           </div></ListPanel>)}</div></section> : null}
 
-          {tab === "contact" ? <section className="admin-panel"><div className="admin-panel-header"><div><h2>Kontak resmi</h2><p>Gunakan nomor, email, dan media sosial yang telah disetujui untuk publikasi.</p></div></div><div className="admin-grid">
-            <Textarea label="Alamat kantor" value={data.contact.address} onChange={(value) => updateContact("address", value)} />
-            <Input label="Jam pelayanan" value={data.contact.serviceHours} onChange={(value) => updateContact("serviceHours", value)} />
-            <Input label="Nomor telepon" value={data.contact.phone} onChange={(value) => updateContact("phone", value)} />
-            <Input label="WhatsApp" value={data.contact.whatsapp} onChange={(value) => updateContact("whatsapp", value)} />
-            <Input label="Email" value={data.contact.email} onChange={(value) => updateContact("email", value)} />
-            <Input label="Instagram URL" value={data.contact.instagram} onChange={(value) => updateContact("instagram", value)} />
-            <Input label="Facebook URL" value={data.contact.facebook} onChange={(value) => updateContact("facebook", value)} />
-            <Input label="Google Maps URL" value={data.contact.mapsUrl} onChange={(value) => updateContact("mapsUrl", value)} />
-          </div></section> : null}
+          {tab === "contact" ? <>
+            <section className="admin-panel"><div className="admin-panel-header"><div><h2>Kontak resmi</h2><p>Gunakan nomor, email, dan media sosial yang telah disetujui untuk publikasi.</p></div></div><div className="admin-grid">
+              <Textarea label="Alamat kantor" value={data.contact.address} onChange={(value) => updateContact("address", value)} />
+              <Input label="Jam pelayanan" value={data.contact.serviceHours} onChange={(value) => updateContact("serviceHours", value)} />
+              <Input label="Nomor telepon" value={data.contact.phone} onChange={(value) => updateContact("phone", value)} />
+              <Input label="WhatsApp" value={data.contact.whatsapp} onChange={(value) => updateContact("whatsapp", value)} />
+              <Input label="Email" value={data.contact.email} onChange={(value) => updateContact("email", value)} />
+              <Input label="Instagram URL" value={data.contact.instagram} onChange={(value) => updateContact("instagram", value)} />
+              <Input label="Facebook URL" value={data.contact.facebook} onChange={(value) => updateContact("facebook", value)} />
+              <Input label="Google Maps URL" value={data.contact.mapsUrl} onChange={(value) => updateContact("mapsUrl", value)} />
+            </div></section>
+            <section className="admin-panel"><div className="admin-panel-header"><div><h2>Kontak perangkat kelurahan</h2><p>Nama, jabatan, dan nomor yang telah mendapat izin untuk ditampilkan pada website.</p></div><button type="button" className="button button-outline" onClick={addContactPerson}><Plus size={17} /> Tambah kontak</button></div><div className="admin-list">
+              {data.contact.officials.map((official, index) => <ListPanel key={official.id} title={official.name} subtitle={`${official.role} · ${official.phone || "nomor belum diisi"}`} status="published" onDelete={() => setData((current) => ({ ...current, contact: { ...current.contact, officials: current.contact.officials.filter((_, itemIndex) => itemIndex !== index) } }))}><div className="admin-grid">
+                <Input label="Nama" value={official.name} onChange={(value) => updateContactPerson(index, { name: value })} />
+                <Input label="Jabatan" value={official.role} onChange={(value) => updateContactPerson(index, { role: value })} />
+                <Input label="Nomor telepon" value={official.phone} onChange={(value) => updateContactPerson(index, { phone: value })} />
+              </div></ListPanel>)}
+            </div></section>
+          </> : null}
 
           <div className="save-bar"><div><strong>Simpan ke database</strong><p className="save-status">{saveStatus}</p></div><button type="button" className="button button-primary" onClick={save} disabled={saving}>{saving ? <LoaderCircle size={18} className="loading-spin" /> : <Save size={18} />} {saving ? "Menyimpan..." : "Simpan perubahan"}</button></div>
         </main>

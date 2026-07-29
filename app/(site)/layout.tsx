@@ -8,9 +8,9 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
   const data = await getSiteData();
   return (
     <>
-      <Header siteName={data.site.name} />
+      <Header siteName={data.site.name} bestiUrl={data.site.bestiUrl} />
       <main>{children}</main>
-      <Footer siteName={data.site.name} contact={data.contact} />
+      <Footer siteName={data.site.name} contact={data.contact} bestiUrl={data.site.bestiUrl} />
     </>
   );
 }

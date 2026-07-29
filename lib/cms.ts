@@ -3,62 +3,15 @@ import { eq } from "drizzle-orm";
 import type { AdminSession } from "@/lib/auth";
 import { auditValues, type AuditContext } from "@/lib/audit";
 
-import seedData from "@/data/site-data.seed.json";
 import { db, sql } from "@/lib/db";
 import { cmsDocuments, contentSubmissions } from "@/lib/db/schema";
+import { defaultSiteData as defaults, normalizeSiteData } from "@/lib/site-data-normalizer";
 import { validateSocialDashboard } from "@/lib/social-dashboard";
-import { STORY_TYPES, type SiteData, type SocialDashboard, type StoryItem } from "@/lib/types";
+import type { SiteData } from "@/lib/types";
+
+export { normalizeSiteData } from "@/lib/site-data-normalizer";
 
 const DOCUMENT_ID = "main";
-const defaults = seedData as SiteData;
-
-function normalizeCategory(category: string): string {
-  const value = category.trim();
-  if (/wisata|budaya|kearifan|sejarah/i.test(value)) return "Wisata & Budaya";
-  return value || "Kegiatan Kelurahan";
-}
-
-export function normalizeSiteData(input: SiteData): SiteData {
-  const candidate = input as SiteData & {
-    socialDashboard?: Partial<SocialDashboard>;
-    stories?: Array<Partial<StoryItem> & Pick<StoryItem, "id" | "slug" | "title" | "category" | "excerpt" | "content" | "image" | "generalLocation" | "source" | "status">>;
-  };
-  const rawDashboard = candidate.socialDashboard;
-  const dashboard: SocialDashboard = {
-    ...defaults.socialDashboard,
-    ...rawDashboard,
-    pbiJk: { ...defaults.socialDashboard.pbiJk, ...rawDashboard?.pbiJk },
-    pkh: { ...defaults.socialDashboard.pkh, ...rawDashboard?.pkh },
-    sembako: { ...defaults.socialDashboard.sembako, ...rawDashboard?.sembako },
-    deciles: { ...defaults.socialDashboard.deciles, ...rawDashboard?.deciles },
-  };
-
-  const sourceStories = candidate.stories || defaults.stories;
-  const alreadyFeatured = sourceStories.some((story) => Boolean(story.featured));
-  const fallbackDate = input.updatedAt?.slice(0, 10) || "";
-  const stories: StoryItem[] = sourceStories.map((story, index) => ({
-    id: story.id,
-    slug: story.slug,
-    title: story.title,
-    category: normalizeCategory(story.category),
-    excerpt: story.excerpt,
-    content: story.content,
-    image: story.image,
-    generalLocation: story.generalLocation,
-    source: story.source,
-    articleType: STORY_TYPES.includes(story.articleType as (typeof STORY_TYPES)[number]) ? story.articleType as StoryItem["articleType"] : "article",
-    publishedAt: story.publishedAt || fallbackDate,
-    eventDate: story.eventDate || "",
-    featured: Boolean(story.featured || (!alreadyFeatured && index === 0)),
-    status: story.status,
-  }));
-
-  return {
-    ...input,
-    socialDashboard: dashboard,
-    stories,
-  };
-}
 
 export async function getSiteData(): Promise<SiteData> {
   const [document] = await db

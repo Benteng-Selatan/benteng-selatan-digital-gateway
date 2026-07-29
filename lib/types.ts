@@ -10,6 +10,7 @@ export interface SiteSettings {
   primaryCtaHref: string;
   secondaryCtaLabel: string;
   secondaryCtaHref: string;
+  bestiUrl: string;
 }
 
 export interface ProfileData {
@@ -23,6 +24,13 @@ export interface ProfileData {
   image: string;
 }
 
+export interface ContactPerson {
+  id: string;
+  name: string;
+  role: string;
+  phone: string;
+}
+
 export interface ContactData {
   address: string;
   serviceHours: string;
@@ -32,6 +40,7 @@ export interface ContactData {
   instagram: string;
   facebook: string;
   mapsUrl: string;
+  officials: ContactPerson[];
 }
 
 export interface ServiceItem {
@@ -45,6 +54,7 @@ export interface ServiceItem {
   location: string;
   contact: string;
   note: string;
+  featured: boolean;
   status: PublishStatus;
 }
 
