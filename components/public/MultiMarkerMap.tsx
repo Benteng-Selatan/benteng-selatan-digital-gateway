@@ -137,11 +137,10 @@ export function MultiMarkerMap({
   if (validLocations.length === 0) {
     return (
       <div className="map-empty-state">
-        <h2>Koordinat belum tersedia</h2>
+        <h2>Daftar lokasi Benteng Selatan</h2>
 
         <p>
-          Tambahkan latitude dan longitude melalui halaman
-          admin.
+          Informasi lokasi dapat dilihat pada daftar. Gunakan tautan petunjuk arah pada lokasi yang tersedia.
         </p>
       </div>
     );

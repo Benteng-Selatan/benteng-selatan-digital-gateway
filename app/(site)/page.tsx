@@ -8,7 +8,6 @@ import {
   HeartHandshake,
   Landmark,
   MapPinned,
-  ShieldCheck,
   Store,
   PhoneCall,
   Users
@@ -25,7 +24,7 @@ function storyTimestamp(value: string) {
 }
 
 function displayDate(value: string) {
-  if (!value) return "Tanggal belum diisi";
+  if (!value) return "";
   const date = new Date(`${value}T00:00:00`);
   return Number.isNaN(date.getTime())
     ? value
@@ -62,7 +61,7 @@ export default async function HomePage() {
             <Link href={data.site.primaryCtaHref} className="button button-primary">{data.site.primaryCtaLabel} <ArrowRight size={18} /></Link>
             <Link href={data.site.secondaryCtaHref} className="button button-secondary">{data.site.secondaryCtaLabel}</Link>
           </div>
-          <div className="hero-trust"><ShieldCheck size={18} /> Informasi publik tanpa menampilkan data pribadi warga.</div>
+          <div className="hero-trust"><Landmark size={18} /> Informasi dan layanan Kelurahan Benteng Selatan dalam satu portal.</div>
         </div>
       </section>
 
@@ -116,7 +115,7 @@ export default async function HomePage() {
 
       <section className="section section-tinted">
         <div className="container">
-          <SectionHeading eyebrow="Informasi Ringkas" title="Akses cepat ke isi portal" description="Angka berikut dihitung dari konten berstatus terbit di CMS." />
+          <SectionHeading eyebrow="Informasi Ringkas" title="Akses cepat ke isi portal" description="Ringkasan informasi yang tersedia di Portal Kelurahan Benteng Selatan." />
           <div className="stats-grid">
             <article><FileText size={25} /><strong>{services.length}</strong><span>Layanan tersedia</span></article>
             <article><Store size={25} /><strong>{umkm.length}</strong><span>UMKM terdata</span></article>
@@ -128,7 +127,7 @@ export default async function HomePage() {
 
       <section className="section">
         <div className="container">
-          <SectionHeading eyebrow="Ekonomi Lokal" title="UMKM dan produk masyarakat" description="Direktori usaha dapat diperbarui oleh admin setelah memperoleh izin publikasi." href="/umkm" linkLabel="Buka direktori" />
+          <SectionHeading eyebrow="Ekonomi Lokal" title="UMKM dan produk masyarakat" description="Jelajahi usaha dan produk lokal masyarakat Benteng Selatan." href="/umkm" linkLabel="Buka direktori" />
           <div className="card-grid card-grid-3">
             {umkm.slice(0, 3).map((item) => (
               <article className="media-card" key={item.id}>
@@ -169,7 +168,7 @@ export default async function HomePage() {
             {stories.slice(0, 2).map((story) => (
               <article className="story-card" key={story.id}>
                 <img src={story.image || "/images/story-placeholder.svg"} alt={story.title} />
-                <div><span className="category-label">{story.category}</span><h3>{story.title}</h3><p>{story.excerpt}</p><small className="card-meta"><CalendarDays size={15} /> {displayDate(story.publishedAt)}</small><Link className="text-link" href={`/wisata/${story.slug}`}>Baca Kabar <ArrowRight size={16} /></Link></div>
+                <div><span className="category-label">{story.category}</span><h3>{story.title}</h3><p>{story.excerpt}</p>{displayDate(story.publishedAt) ? <small className="card-meta"><CalendarDays size={15} /> {displayDate(story.publishedAt)}</small> : null}<Link className="text-link" href={`/wisata/${story.slug}`}>Baca Kabar <ArrowRight size={16} /></Link></div>
               </article>
             ))}
           </div>

@@ -12,6 +12,12 @@ export default async function ServiceDetailPage({ params }: { params: Promise<{ 
   const service = data.services.find((item) => item.slug === slug && item.status === "published");
   if (!service) notFound();
 
+  const serviceInfo = [
+    { icon: Clock3, label: "Jam layanan", value: service.serviceHours || data.contact.serviceHours },
+    { icon: MapPin, label: "Lokasi", value: service.location || data.contact.address },
+    { icon: Phone, label: "Kontak", value: data.contact.phone || service.contact },
+  ].filter((item) => item.value.trim());
+
   return (
     <>
       <PageHero eyebrow="Informasi Layanan" title={service.name} description={service.shortDescription}>
@@ -26,9 +32,9 @@ export default async function ServiceDetailPage({ params }: { params: Promise<{ 
             <a href={data.site.bestiUrl} className="button button-primary" target="_blank" rel="noreferrer">Buka BESTI <ExternalLink size={18} /></a>
           </article>
         </div>
-        <aside className="detail-sidebar">
-          <article className="sidebar-card"><h2>Informasi pelayanan</h2><p><Clock3 size={18} /><span><small>Jam layanan</small>{service.serviceHours || data.contact.serviceHours}</span></p><p><MapPin size={18} /><span><small>Lokasi</small>{service.location || data.contact.address}</span></p><p><Phone size={18} /><span><small>Kontak</small>{data.contact.phone || service.contact || "Kontak resmi belum tersedia"}</span></p></article>
-        </aside>
+        {serviceInfo.length ? <aside className="detail-sidebar">
+          <article className="sidebar-card"><h2>Informasi pelayanan</h2>{serviceInfo.map(({ icon: Icon, label, value }) => <p key={label}><Icon size={18} /><span><small>{label}</small>{value}</span></p>)}</article>
+        </aside> : null}
       </div></section>
     </>
   );

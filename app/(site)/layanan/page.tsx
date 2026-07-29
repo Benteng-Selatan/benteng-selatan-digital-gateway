@@ -30,7 +30,7 @@ export default async function ServicesPage() {
     .slice(0, 10);
   return (
     <>
-      <PageHero eyebrow="Pusat Layanan Warga" title="Layanan Kelurahan Benteng Selatan" description="Kenali layanan yang paling sering dibutuhkan warga. Persyaratan, prosedur lengkap, dan pengajuan dilakukan melalui aplikasi BESTI." />
+      <PageHero eyebrow="Pusat Layanan Warga" title="Layanan Kelurahan Benteng Selatan" description="Temukan layanan yang paling sering dibutuhkan warga. Informasi lengkap dan proses pengajuan tersedia melalui BESTI." />
       <section className="section"><div className="container">
         <div className="service-gateway-panel">
           <div>

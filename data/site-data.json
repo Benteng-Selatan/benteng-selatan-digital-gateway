@@ -3,7 +3,7 @@
     "name": "Benteng Selatan Digital Gateway",
     "kelurahan": "Kelurahan Benteng Selatan",
     "tagline": "Satu pintu informasi layanan, potensi, dan kehidupan lokal.",
-    "description": "Portal informasi awal Kelurahan Benteng Selatan untuk membantu masyarakat menemukan informasi layanan publik, UMKM, kesejahteraan sosial, fasilitas wilayah, serta kearifan lokal.",
+    "description": "Portal informasi Kelurahan Benteng Selatan yang memudahkan masyarakat mengakses layanan publik, informasi UMKM, kesejahteraan sosial, fasilitas wilayah, Kabar Kelurahan, serta potensi lokal.",
     "heroImage": "/images/hero-benteng.svg",
     "primaryCtaLabel": "Lihat Layanan Publik",
     "primaryCtaHref": "/layanan",
@@ -12,8 +12,8 @@
   },
   "profile": {
     "heading": "Mengenal Benteng Selatan",
-    "description": "Halaman ini disiapkan sebagai profil singkat wilayah. Narasi final dapat diperbarui melalui CMS setelah diverifikasi bersama perangkat kelurahan.",
-    "communityOverview": "Benteng Selatan memiliki masyarakat dengan aktivitas sosial dan ekonomi yang beragam. Konten ini masih berupa teks awal dan harus disesuaikan berdasarkan data lapangan terverifikasi.",
+    "description": "Kelurahan Benteng Selatan terus mengembangkan pelayanan informasi yang mudah diakses sekaligus memperkenalkan potensi wilayah, kegiatan masyarakat, dan fasilitas publik.",
+    "communityOverview": "Masyarakat Benteng Selatan memiliki aktivitas sosial dan ekonomi yang beragam serta berperan aktif dalam mendukung pelayanan, pemberdayaan, dan pembangunan wilayah.",
     "potentials": [
       "Potensi pangan dan produk lokal",
       "Pengembangan UMKM masyarakat",
@@ -26,13 +26,13 @@
       "Fasilitas kesehatan",
       "Fasilitas umum masyarakat"
     ],
-    "leaderName": "[Nama lurah belum diisi]",
-    "governmentDescription": "Informasi pemerintahan kelurahan dapat ditambahkan setelah memperoleh data resmi.",
+    "leaderName": "Ahmad Munir, S.P.W.K.",
+    "governmentDescription": "Pemerintah Kelurahan Benteng Selatan menjalankan pelayanan pemerintahan, administrasi, pemberdayaan masyarakat, pembangunan, ketenteraman dan ketertiban, serta kesejahteraan sosial.",
     "image": "/images/profile-placeholder.svg"
   },
   "contact": {
-    "address": "[Alamat kantor kelurahan belum diisi]",
-    "serviceHours": "[Jam pelayanan belum diisi]",
+    "address": "",
+    "serviceHours": "",
     "phone": "",
     "email": "",
     "whatsapp": "",
@@ -132,22 +132,15 @@
     }
   ],
   "socialContent": {
-    "intro": "Informasi kesejahteraan sosial ditampilkan dalam bentuk agregat agar masyarakat dapat memperoleh gambaran umum tanpa membuka data pribadi warga.",
-    "accessBarriers": [
-      "Ringkasan hambatan akses layanan belum diisi",
-      "Tambahkan hanya narasi anonim yang telah diverifikasi"
-    ],
+    "intro": "Ringkasan data kesejahteraan sosial Kelurahan Benteng Selatan disajikan untuk memberikan gambaran umum mengenai penerima bantuan dan klasifikasi desil.",
+    "accessBarriers": [],
     "recommendations": [
-      "Perbarui kanal informasi layanan sosial secara berkala",
-      "Gunakan bahasa yang sederhana dan mudah dipahami masyarakat"
+      "Perbarui dokumen administrasi kependudukan secara berkala.",
+      "Ikuti informasi resmi kelurahan dan konsultasikan kendala akses layanan sosial kepada petugas terkait."
     ],
-    "serviceFlow": [
-      "Cari informasi program atau layanan yang dibutuhkan",
-      "Hubungi kanal rujukan resmi",
-      "Lengkapi proses verifikasi sesuai ketentuan pihak berwenang"
-    ],
-    "referralContact": "[Kontak rujukan layanan sosial belum diisi]",
-    "privacyNote": "Data yang ditampilkan merupakan data agregat untuk kebutuhan informasi publik. Data individu tidak ditampilkan guna menjaga kerahasiaan dan perlindungan data pribadi warga."
+    "serviceFlow": [],
+    "referralContact": "Posbakum Benteng Selatan: 081355092266. Pendamping TKSK Benteng Selatan (Dinas Sosial): 082260947576.",
+    "privacyNote": "Data disajikan secara agregat sebagai gambaran umum kesejahteraan sosial Kelurahan Benteng Selatan."
   },
   "umkm": [
     {
@@ -163,7 +156,7 @@
       "generalLocation": "Benteng Selatan",
       "instagram": "",
       "marketplace": "",
-      "status": "published"
+      "status": "draft"
     },
     {
       "id": "umkm-002",
@@ -178,7 +171,7 @@
       "generalLocation": "Benteng Selatan",
       "instagram": "",
       "marketplace": "",
-      "status": "published"
+      "status": "draft"
     }
   ],
   "mapLocations": [
@@ -191,7 +184,7 @@
       "longitude": 120.45830758872175,
       "generalLocation": "Benteng Selatan",
       "mapsUrl": "https://maps.app.goo.gl/2qX7rcUukGPFbBMr5",
-      "status": "published"
+      "status": "draft"
     },
     {
       "id": "peta-002",
@@ -202,7 +195,7 @@
       "longitude": null,
       "generalLocation": "Benteng Selatan",
       "mapsUrl": "",
-      "status": "published"
+      "status": "draft"
     },
     {
       "id": "peta-003",
@@ -213,7 +206,7 @@
       "longitude": null,
       "generalLocation": "Benteng Selatan",
       "mapsUrl": "",
-      "status": "published"
+      "status": "draft"
     },
     {
       "id": "peta-mrqljm73-t0od",
@@ -238,7 +231,7 @@
       "image": "/images/story-placeholder.svg",
       "generalLocation": "Benteng Selatan",
       "source": "Sumber belum diisi",
-      "status": "published",
+      "status": "draft",
       "articleType": "article",
       "publishedAt": "2025-09-01",
       "eventDate": "",
@@ -254,7 +247,7 @@
       "image": "/images/tourism-placeholder.svg",
       "generalLocation": "Benteng Selatan",
       "source": "Sumber belum diisi",
-      "status": "published",
+      "status": "draft",
       "articleType": "article",
       "publishedAt": "2025-08-15",
       "eventDate": "",

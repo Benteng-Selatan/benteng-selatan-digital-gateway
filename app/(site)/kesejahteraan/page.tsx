@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import { CalendarDays, Database, HeartHandshake, Info, Route, ShieldCheck, Users } from "lucide-react";
+import { CalendarDays, Database, HeartHandshake, Info, ShieldCheck, Users } from "lucide-react";
 import { PageHero } from "@/components/public/PageHero";
 import { getSiteData } from "@/lib/cms";
 import { formatPercentage, percentage, socialDashboardTotals } from "@/lib/social-dashboard";
@@ -153,10 +153,8 @@ export default async function SocialPage() {
       </section>
 
       <section className="section section-tinted"><div className="container two-column-content">
-        <article className="content-panel"><span className="icon-box"><Info size={22} /></span><h2>Hambatan akses layanan</h2><ul className="check-list">{data.socialContent.accessBarriers.map((item) => <li key={item}>{item}</li>)}</ul></article>
-        <article className="content-panel"><span className="icon-box"><Route size={22} /></span><h2>Alur memperoleh informasi</h2><ol className="step-list">{data.socialContent.serviceFlow.map((item, index) => <li key={item}><span>{index + 1}</span><p>{item}</p></li>)}</ol></article>
-        <article className="content-panel"><h2>Rekomendasi umum</h2><ul className="check-list">{data.socialContent.recommendations.map((item) => <li key={item}>{item}</li>)}</ul></article>
-        <article className="content-panel"><h2>Kontak rujukan</h2><p>{data.socialContent.referralContact}</p></article>
+        <article className="content-panel"><span className="icon-box"><Info size={22} /></span><h2>Rekomendasi umum</h2><ul className="check-list">{data.socialContent.recommendations.map((item) => <li key={item}>{item}</li>)}</ul></article>
+        <article className="content-panel"><span className="icon-box"><HeartHandshake size={22} /></span><h2>Rujukan layanan sosial</h2><p>{data.socialContent.referralContact}</p></article>
       </div></section>
     </>
   );

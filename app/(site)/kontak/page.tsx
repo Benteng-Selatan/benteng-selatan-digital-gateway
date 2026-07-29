@@ -16,17 +16,17 @@ export default async function ContactPage() {
   const whatsappDigits = contact.whatsapp.replace(/\D/g, "");
   const whatsappUrl = whatsappDigits ? `https://wa.me/${whatsappDigits.startsWith("0") ? `62${whatsappDigits.slice(1)}` : whatsappDigits}` : "";
   const items = [
-    { icon: MapPin, label: "Alamat kantor", value: contact.address || "Belum tersedia" },
-    { icon: Clock3, label: "Jam pelayanan", value: contact.serviceHours || "Belum tersedia" },
-    { icon: Phone, label: "Nomor resmi", value: contact.phone || "Belum tersedia" },
-    { icon: Mail, label: "Email resmi", value: contact.email || "Belum tersedia" }
-  ];
+    { icon: MapPin, label: "Alamat kantor", value: contact.address },
+    { icon: Clock3, label: "Jam pelayanan", value: contact.serviceHours },
+    { icon: Phone, label: "Nomor resmi", value: contact.phone },
+    { icon: Mail, label: "Email resmi", value: contact.email }
+  ].filter((item) => item.value.trim());
   return (
     <>
-      <PageHero eyebrow="Kanal Resmi" title="Kontak Kelurahan" description="Hubungi perangkat Kelurahan Benteng Selatan melalui kanal yang tersedia untuk informasi awal dan bantuan pelayanan." />
+      <PageHero eyebrow="Kanal Resmi" title="Kontak Kelurahan" description="Hubungi perangkat Kelurahan Benteng Selatan untuk memperoleh informasi dan bantuan pelayanan." />
       <section className="section"><div className="container contact-layout">
         <div className="contact-cards">{items.map(({ icon: Icon, label, value }) => <article key={label}><span className="icon-box"><Icon size={21} /></span><div><small>{label}</small><strong>{value}</strong></div></article>)}</div>
-        <div className="contact-panel"><h2>Hubungi dan ikuti kanal resmi</h2><p>Pastikan informasi penting dikonfirmasi melalui perangkat kelurahan.</p><div className="action-stack">{whatsappUrl ? <a className="button button-primary" href={whatsappUrl} target="_blank" rel="noreferrer"><MessageCircle size={18} /> WhatsApp resmi</a> : null}{contact.phone ? <a className="button button-outline" href={phoneUrl(contact.phone)}><PhoneCall size={18} /> Telepon kantor</a> : null}{contact.instagram ? <a className="button button-outline" href={contact.instagram} target="_blank" rel="noreferrer"><Camera size={18} /> Instagram</a> : null}{contact.facebook ? <a className="button button-outline" href={contact.facebook} target="_blank" rel="noreferrer"><MessagesSquare size={18} /> Facebook</a> : null}{contact.mapsUrl ? <a className="button button-outline" href={contact.mapsUrl} target="_blank" rel="noreferrer"><ExternalLink size={18} /> Buka Google Maps</a> : null}{!whatsappUrl && !contact.phone && !contact.instagram && !contact.facebook && !contact.mapsUrl ? <div className="empty-state small-empty">Kanal digital belum dimasukkan melalui CMS.</div> : null}</div></div>
+        <div className="contact-panel"><h2>Hubungi dan ikuti kanal resmi</h2><p>Pastikan informasi penting dikonfirmasi melalui perangkat kelurahan.</p><div className="action-stack">{whatsappUrl ? <a className="button button-primary" href={whatsappUrl} target="_blank" rel="noreferrer"><MessageCircle size={18} /> WhatsApp resmi</a> : null}{contact.phone ? <a className="button button-outline" href={phoneUrl(contact.phone)}><PhoneCall size={18} /> Telepon kantor</a> : null}{contact.instagram ? <a className="button button-outline" href={contact.instagram} target="_blank" rel="noreferrer"><Camera size={18} /> Instagram</a> : null}{contact.facebook ? <a className="button button-outline" href={contact.facebook} target="_blank" rel="noreferrer"><MessagesSquare size={18} /> Facebook</a> : null}{contact.mapsUrl ? <a className="button button-outline" href={contact.mapsUrl} target="_blank" rel="noreferrer"><ExternalLink size={18} /> Buka Google Maps</a> : null}{!whatsappUrl && !contact.phone && !contact.instagram && !contact.facebook && !contact.mapsUrl ? <div className="empty-state small-empty">Silakan hubungi salah satu perangkat kelurahan pada daftar kontak.</div> : null}</div></div>
       </div></section>
 
       {contact.officials.length ? <section className="section section-tinted"><div className="container">

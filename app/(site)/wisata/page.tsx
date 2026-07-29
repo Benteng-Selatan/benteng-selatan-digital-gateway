@@ -12,7 +12,7 @@ function timestamp(value: string) {
 }
 
 function displayDate(value: string) {
-  if (!value) return "Tanggal belum diisi";
+  if (!value) return "";
   const date = new Date(`${value}T00:00:00`);
   return Number.isNaN(date.getTime())
     ? value
@@ -40,7 +40,7 @@ export default async function StoriesPage() {
                 <h2>{featured.title}</h2>
                 <p>{featured.excerpt}</p>
                 <div className="kabar-meta">
-                  <span><CalendarDays size={16} /> {displayDate(featured.publishedAt)}</span>
+                  {displayDate(featured.publishedAt) ? <span><CalendarDays size={16} /> {displayDate(featured.publishedAt)}</span> : null}
                   {featured.generalLocation ? <span><MapPin size={16} /> {featured.generalLocation}</span> : null}
                 </div>
                 <Link href={`/wisata/${featured.slug}`} className="button button-primary">Baca Kabar <ArrowRight size={18} /></Link>

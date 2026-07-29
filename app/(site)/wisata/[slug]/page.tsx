@@ -13,7 +13,7 @@ const typeLabels = {
 } as const;
 
 function displayDate(value: string) {
-  if (!value) return "Tanggal belum diisi";
+  if (!value) return "";
   const date = new Date(`${value}T00:00:00`);
   return Number.isNaN(date.getTime())
     ? value
@@ -35,7 +35,7 @@ export default async function StoryDetailPage({ params }: { params: Promise<{ sl
         <div className="container article-container">
           <img className="article-cover" src={story.image || "/images/story-placeholder.svg"} alt={story.title} />
           <div className="article-meta">
-            <span><CalendarDays size={17} /> Terbit {displayDate(story.publishedAt)}</span>
+            {displayDate(story.publishedAt) ? <span><CalendarDays size={17} /> Terbit {displayDate(story.publishedAt)}</span> : null}
             {story.eventDate ? <span><CalendarDays size={17} /> Kegiatan {displayDate(story.eventDate)}</span> : null}
             {story.generalLocation ? <span><MapPin size={17} /> {story.generalLocation}</span> : null}
             <span><BookOpen size={17} /> Sumber: {story.source || "Kelurahan Benteng Selatan"}</span>

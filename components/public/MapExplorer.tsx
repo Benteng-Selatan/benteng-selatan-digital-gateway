@@ -82,9 +82,9 @@ export function MapExplorer({
 
                 <h3>{location.name}</h3>
 
-                <p>{location.description}</p>
+                {location.description ? <p>{location.description}</p> : null}
 
-                <small>{location.generalLocation}</small>
+                {location.generalLocation ? <small>{location.generalLocation}</small> : null}
 
                 {location.mapsUrl ? (
                   <a

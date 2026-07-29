@@ -4,6 +4,13 @@ import type { ContactData } from "@/lib/types";
 
 export function Footer({ siteName, contact, bestiUrl }: { siteName: string; contact: ContactData; bestiUrl: string }) {
   const year = new Date().getFullYear();
+  const contactItems = [
+    { icon: MapPin, value: contact.address },
+    { icon: Clock3, value: contact.serviceHours },
+    { icon: Phone, value: contact.phone },
+    { icon: Mail, value: contact.email },
+  ].filter((item) => item.value.trim());
+
   return (
     <footer className="site-footer">
       <div className="container footer-grid">
@@ -12,12 +19,12 @@ export function Footer({ siteName, contact, bestiUrl }: { siteName: string; cont
             <span className="brand-mark" aria-hidden="true">BS</span>
             <span>
               <strong>{siteName}</strong>
-              <small>Informasi publik yang aman dan mudah diakses.</small>
+              <small>Informasi dan layanan Kelurahan Benteng Selatan.</small>
             </span>
           </div>
           <p className="muted footer-copy">
-            Portal ini menyajikan informasi layanan, data agregat, direktori UMKM, peta fasilitas,
-            dan potensi lokal. Data individual warga tidak ditampilkan.
+            Portal informasi dan layanan Kelurahan Benteng Selatan yang menghubungkan masyarakat dengan
+            informasi pemerintahan, layanan publik, potensi wilayah, dan Kabar Kelurahan.
           </p>
         </div>
         <div>
@@ -33,12 +40,11 @@ export function Footer({ siteName, contact, bestiUrl }: { siteName: string; cont
         </div>
         <div>
           <h3>Kontak Kelurahan</h3>
-          <div className="footer-contact">
-            <p><MapPin size={17} /> <span>{contact.address || "Alamat belum tersedia"}</span></p>
-            <p><Clock3 size={17} /> <span>{contact.serviceHours || "Jam layanan belum tersedia"}</span></p>
-            <p><Phone size={17} /> <span>{contact.phone || "Nomor resmi belum tersedia"}</span></p>
-            <p><Mail size={17} /> <span>{contact.email || "Email resmi belum tersedia"}</span></p>
-          </div>
+          {contactItems.length ? (
+            <div className="footer-contact">
+              {contactItems.map(({ icon: Icon, value }) => <p key={value}><Icon size={17} /> <span>{value}</span></p>)}
+            </div>
+          ) : <p className="muted">Kontak perangkat kelurahan tersedia pada halaman Kontak.</p>}
         </div>
       </div>
       <div className="container footer-bottom">

@@ -12,7 +12,7 @@ const typeLabels: Record<StoryItem["articleType"], string> = {
 };
 
 function displayDate(value: string) {
-  if (!value) return "Tanggal belum diisi";
+  if (!value) return "";
   const date = new Date(`${value}T00:00:00`);
   return Number.isNaN(date.getTime())
     ? value
@@ -49,7 +49,7 @@ export function StoryBrowser({ stories }: { stories: StoryItem[] }) {
                 <h2>{story.title}</h2>
                 <p>{story.excerpt}</p>
                 <div className="kabar-meta">
-                  <span><CalendarDays size={15} /> {displayDate(story.publishedAt)}</span>
+                  {displayDate(story.publishedAt) ? <span><CalendarDays size={15} /> {displayDate(story.publishedAt)}</span> : null}
                   {story.generalLocation ? <span><MapPin size={15} /> {story.generalLocation}</span> : null}
                 </div>
                 <Link href={`/wisata/${story.slug}`} className="text-link">Baca selengkapnya <ArrowRight size={17} /></Link>
