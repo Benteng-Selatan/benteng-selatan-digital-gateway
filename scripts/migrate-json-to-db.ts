@@ -2,6 +2,7 @@ import { config } from "dotenv";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
+import { normalizeSiteData } from "../lib/site-data-normalizer";
 import type { SiteData } from "../lib/types";
 
 config({ path: ".env.local" });
@@ -20,10 +21,10 @@ async function migrate(): Promise<void> {
   const raw = await readFile(jsonPath, "utf8");
   const source = JSON.parse(raw) as SiteData;
 
-  const data: SiteData = {
+  const data: SiteData = normalizeSiteData({
     ...source,
     updatedAt: new Date().toISOString(),
-  };
+  });
 
   await db
     .insert(cmsDocuments)

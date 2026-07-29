@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { Clock3, Mail, MapPin, Phone } from "lucide-react";
+import { Clock3, ExternalLink, Mail, MapPin, Phone } from "lucide-react";
 import type { ContactData } from "@/lib/types";
 
-export function Footer({ siteName, contact }: { siteName: string; contact: ContactData }) {
+export function Footer({ siteName, contact, bestiUrl }: { siteName: string; contact: ContactData; bestiUrl: string }) {
   const year = new Date().getFullYear();
   return (
     <footer className="site-footer">
@@ -24,6 +24,7 @@ export function Footer({ siteName, contact }: { siteName: string; contact: Conta
           <h3>Tautan</h3>
           <div className="footer-links">
             <Link href="/layanan">Layanan Publik</Link>
+            <a href={bestiUrl} target="_blank" rel="noreferrer">Pengurusan di BESTI <ExternalLink size={14} /></a>
             <Link href="/kesejahteraan">Kesejahteraan Sosial</Link>
             <Link href="/umkm">UMKM & Potensi</Link>
             <Link href="/peta">Peta Digital</Link>

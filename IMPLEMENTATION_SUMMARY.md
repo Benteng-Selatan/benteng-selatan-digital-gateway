@@ -50,3 +50,13 @@ npm run dev
 - Data awal dashboard diisi dari Sheet 2 `Benteng Selatan.xlsx`.
 - Persentase dihitung otomatis dan validasi konsistensi tersedia di CMS serta API.
 - Tidak ada migrasi tabel database baru.
+
+## Pembaruan v0.4.0 — Layanan dan BESTI
+
+- Halaman layanan difokuskan pada 10 layanan utama yang paling relevan bagi warga.
+- Persyaratan, prosedur lengkap, dan pengajuan diarahkan ke BESTI melalui URL yang dapat dikelola pada CMS.
+- Tombol Portal Warga pada navigasi publik diganti menjadi akses BESTI, sementara route dan data Portal Warga lama tetap dipertahankan.
+- Halaman Kontak menampilkan lima kontak perangkat kelurahan dan mendukung tombol telepon responsif.
+- CMS mendapat pengaturan URL BESTI, pilihan layanan utama, dan pengelolaan kontak perangkat.
+- Normalisasi data bersifat additive: konten Production yang sudah ada tidak dihapus atau diganti.
+- Tidak ada migration schema database pada rilis ini.

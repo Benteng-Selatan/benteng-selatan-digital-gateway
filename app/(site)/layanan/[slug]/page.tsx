@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft, Clock3, FileCheck2, Info, MapPin, Phone, Route } from "lucide-react";
+import { ArrowLeft, Clock3, ExternalLink, MapPin, Phone } from "lucide-react";
 import { notFound } from "next/navigation";
 import { PageHero } from "@/components/public/PageHero";
 import { getSiteData } from "@/lib/cms";
@@ -14,17 +14,20 @@ export default async function ServiceDetailPage({ params }: { params: Promise<{ 
 
   return (
     <>
-      <PageHero eyebrow="Detail Layanan" title={service.name} description={service.shortDescription}>
+      <PageHero eyebrow="Informasi Layanan" title={service.name} description={service.shortDescription}>
         <Link href="/layanan" className="back-link"><ArrowLeft size={17} /> Kembali ke daftar layanan</Link>
       </PageHero>
       <section className="section"><div className="container detail-layout">
         <div className="content-stack">
-          <article className="content-panel"><span className="icon-box"><FileCheck2 size={22} /></span><h2>Dokumen yang disiapkan</h2><ol className="number-list">{service.requirements.map((item) => <li key={item}>{item}</li>)}</ol></article>
-          <article className="content-panel"><span className="icon-box"><Route size={22} /></span><h2>Alur pelayanan</h2><ol className="step-list">{service.steps.map((item, index) => <li key={item}><span>{index + 1}</span><p>{item}</p></li>)}</ol></article>
-          {service.note ? <article className="notice warning"><Info size={20} /><div><strong>Catatan</strong><p>{service.note}</p></div></article> : null}
+          <article className="content-panel service-detail-besti">
+            <span className="eyebrow">Prosedur resmi</span>
+            <h2>Lanjutkan pengurusan melalui BESTI</h2>
+            <p>Persyaratan dan tahapan dapat berubah mengikuti ketentuan pelayanan. Gunakan BESTI agar informasi dan proses pengajuan yang diterima tetap terbaru.</p>
+            <a href={data.site.bestiUrl} className="button button-primary" target="_blank" rel="noreferrer">Buka BESTI <ExternalLink size={18} /></a>
+          </article>
         </div>
         <aside className="detail-sidebar">
-          <article className="sidebar-card"><h2>Informasi pelayanan</h2><p><Clock3 size={18} /><span><small>Jam layanan</small>{service.serviceHours}</span></p><p><MapPin size={18} /><span><small>Lokasi</small>{service.location}</span></p><p><Phone size={18} /><span><small>Kontak</small>{service.contact}</span></p></article>
+          <article className="sidebar-card"><h2>Informasi pelayanan</h2><p><Clock3 size={18} /><span><small>Jam layanan</small>{service.serviceHours || data.contact.serviceHours}</span></p><p><MapPin size={18} /><span><small>Lokasi</small>{service.location || data.contact.address}</span></p><p><Phone size={18} /><span><small>Kontak</small>{data.contact.phone || service.contact || "Kontak resmi belum tersedia"}</span></p></article>
         </aside>
       </div></section>
     </>

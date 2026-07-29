@@ -3,12 +3,14 @@ import {
   ArrowRight,
   Building2,
   CalendarDays,
+  ExternalLink,
   FileText,
   HeartHandshake,
   Landmark,
   MapPinned,
   ShieldCheck,
   Store,
+  PhoneCall,
   Users
 } from "lucide-react";
 import { SectionHeading } from "@/components/public/SectionHeading";
@@ -32,7 +34,7 @@ function displayDate(value: string) {
 
 export default async function HomePage() {
   const data = await getSiteData();
-  const services = data.services.filter((item) => item.status === "published");
+  const services = data.services.filter((item) => item.status === "published" && item.featured).slice(0, 10);
   const umkm = data.umkm.filter((item) => item.status === "published");
   const locations = data.mapLocations.filter((item) => item.status === "published");
   const stories = data.stories
@@ -42,7 +44,7 @@ export default async function HomePage() {
   const socialTotals = socialDashboardTotals(social);
 
   const quickLinks = [
-    { href: "/layanan", label: "Layanan Publik", description: "Syarat dan alur pelayanan", icon: FileText },
+    { href: "/layanan", label: "Layanan Publik", description: "Daftar layanan dan akses BESTI", icon: FileText },
     { href: "/kesejahteraan", label: "Kesejahteraan Sosial", description: "Persentase bantuan dan desil", icon: HeartHandshake },
     { href: "/umkm", label: "UMKM Lokal", description: "Direktori usaha dan produk", icon: Store },
     { href: "/peta", label: "Peta Digital", description: "Fasilitas dan potensi wilayah", icon: MapPinned },
@@ -73,6 +75,26 @@ export default async function HomePage() {
               <ArrowRight size={18} />
             </Link>
           ))}
+        </div>
+      </section>
+
+      <section className="section service-home-section">
+        <div className="container service-gateway-panel home-service-gateway">
+          <div>
+            <span className="eyebrow">Pusat Layanan Warga</span>
+            <h2>Temukan layanan di website, urus melalui BESTI.</h2>
+            <p>Lihat sepuluh layanan utama Kelurahan Benteng Selatan, kemudian lanjutkan ke BESTI untuk persyaratan, prosedur lengkap, dan pengajuan.</p>
+            <div className="action-row">
+              <Link href="/layanan" className="button button-outline">Lihat daftar layanan <ArrowRight size={18} /></Link>
+              <a href={data.site.bestiUrl} className="button button-primary" target="_blank" rel="noreferrer">Buka BESTI <ExternalLink size={18} /></a>
+              <Link href="/kontak" className="button button-outline"><PhoneCall size={18} /> Hubungi kelurahan</Link>
+            </div>
+          </div>
+          <div className="service-gateway-summary">
+            <strong>{services.length}</strong>
+            <span>Layanan utama</span>
+            <small>Informasi ringkas dan akses pengurusan dalam satu alur.</small>
+          </div>
         </div>
       </section>
 

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Menu, X } from "lucide-react";
+import { ExternalLink, Menu, X } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 
@@ -16,7 +16,7 @@ const navigation = [
   ["Kontak", "/kontak"]
 ] as const;
 
-export function Header({ siteName }: { siteName: string }) {
+export function Header({ siteName, bestiUrl }: { siteName: string; bestiUrl: string }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
 
@@ -55,7 +55,7 @@ export function Header({ siteName }: { siteName: string }) {
               </Link>
             );
           })}
-          <Link href="/warga" className="portal-nav-link" onClick={() => setOpen(false)}>Portal Warga</Link>
+          <a href={bestiUrl} className="portal-nav-link" target="_blank" rel="noreferrer" onClick={() => setOpen(false)}>BESTI <ExternalLink size={15} /></a>
         </nav>
       </div>
     </header>

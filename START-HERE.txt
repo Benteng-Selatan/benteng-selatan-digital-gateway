@@ -1,4 +1,4 @@
-BENTENG SELATAN DIGITAL GATEWAY 0.3.0 - MULAI DI SINI
+BENTENG SELATAN DIGITAL GATEWAY 0.4.0 - MULAI DI SINI
 
 PERSYARATAN
 - Node.js 22 direkomendasikan.
@@ -18,7 +18,8 @@ LANGKAH LOKAL
 
 ALAMAT UTAMA
 - Website publik       : http://localhost:3000
-- Portal warga         : http://localhost:3000/warga
+- Pusat layanan        : http://localhost:3000/layanan
+- Portal warga lama    : http://localhost:3000/warga
 - Login petugas        : http://localhost:3000/admin/login
 - Operasional          : http://localhost:3000/admin/operasional
 - Manajemen petugas    : http://localhost:3000/admin/petugas
@@ -51,3 +52,12 @@ PEMBARUAN 0.3.0
 - Data awal diisi dari Sheet 2 Benteng Selatan.xlsx.
 - Tidak ada tabel database baru; data CMS lama dinormalisasi otomatis.
 - Baca docs/KABAR_KESEJAHTERAAN.md sebelum integrasi.
+
+
+PEMBARUAN 0.4.0
+- Halaman Layanan menampilkan 10 layanan utama dan mengarahkan prosedur/pengajuan ke BESTI.
+- Tautan BESTI dapat diubah melalui CMS pada Identitas & Profil.
+- Halaman Kontak menampilkan daftar perangkat kelurahan yang dapat dikelola melalui CMS.
+- Portal warga lama dan seluruh data sebelumnya tetap dipertahankan sebagai data historis/operasional.
+- Tidak ada migrasi database, reset, seed, atau penghapusan data pada rilis ini.
+- Baca docs/LAYANAN_BESTI.md sebelum deployment dan pelatihan admin.
