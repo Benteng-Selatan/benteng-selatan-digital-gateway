@@ -44,7 +44,7 @@ export function NewContributionForm({ initialType }: { initialType: Contribution
 
   return <form className="portal-form portal-form-wide" onSubmit={submit}>
     <div className="field"><label>Jenis kontribusi</label><select value={type} onChange={(e) => setType(e.target.value as ContributionType)}><option value="umkm">UMKM</option><option value="tourism">Kabar / kegiatan</option><option value="map">Lokasi peta</option></select></div>
-    <div className="form-section-title"><h2>{CONTRIBUTION_TYPE_LABELS[type]}</h2><p>Data baru tampil setelah diverifikasi dan diterbitkan petugas.</p></div>
+    <div className="form-section-title"><h2>{CONTRIBUTION_TYPE_LABELS[type]}</h2><p>Kontribusi akan ditinjau dan diterbitkan oleh petugas kelurahan.</p></div>
     <div className="portal-form-grid">
       {type === "umkm" ? <>
         <div className="field"><label>Nama UMKM</label><input name="name" required /></div><div className="field"><label>Kategori</label><input name="category" required /></div><div className="field"><label>Produk unggulan</label><input name="featuredProduct" required /></div><div className="field"><label>Kontak publik</label><input name="publicContact" /></div><div className="field full"><label>Deskripsi</label><textarea name="description" required minLength={20} rows={5} /></div><div className="field full"><label>Lokasi umum</label><input name="generalLocation" required /></div><div className="field"><label>Instagram</label><input name="instagram" /></div><div className="field"><label>Marketplace</label><input name="marketplace" /></div><label className="checkbox-field full"><input type="checkbox" name="contactApproved" value="true" /> Saya menyetujui kontak ditampilkan kepada publik.</label>

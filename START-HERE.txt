@@ -1,4 +1,4 @@
-BENTENG SELATAN DIGITAL GATEWAY 0.4.0 - MULAI DI SINI
+BENTENG SELATAN DIGITAL GATEWAY 0.4.1 - MULAI DI SINI
 
 PERSYARATAN
 - Node.js 22 direkomendasikan.
@@ -61,3 +61,11 @@ PEMBARUAN 0.4.0
 - Portal warga lama dan seluruh data sebelumnya tetap dipertahankan sebagai data historis/operasional.
 - Tidak ada migrasi database, reset, seed, atau penghapusan data pada rilis ini.
 - Baca docs/LAYANAN_BESTI.md sebelum deployment dan pelatihan admin.
+
+
+PEMBARUAN 0.4.1
+----------------
+- Narasi publik dipoles untuk kesiapan peluncuran dan serah-terima.
+- Bagian Kesejahteraan disederhanakan menjadi rekomendasi dan rujukan layanan sosial.
+- Placeholder dan catatan internal tidak lagi ditampilkan pada halaman publik.
+- Tidak ada migrasi database dan data lama tetap dipertahankan.

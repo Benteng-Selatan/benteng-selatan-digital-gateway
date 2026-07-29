@@ -307,13 +307,11 @@ export function AdminDashboard({ initialData, user }: { initialData: SiteData; u
               {(["d1", "d2", "d3", "d4", "d5"] as const).map((key, index) => <Input key={key} label={`Desil ${index + 1}`} type="number" value={data.socialDashboard.deciles[key]} onChange={(value) => updateDecile(key, Number(value) || 0)} help={formatPercentage(data.socialDashboard.deciles[key], data.socialDashboard.totalRecords)} />)}
             </div></section>
 
-            <section className="admin-panel"><div className="admin-panel-header"><div><h2>Narasi sosial</h2><p>Gunakan narasi anonim dan informasi rujukan umum.</p></div></div><div className="admin-grid">
+            <section className="admin-panel"><div className="admin-panel-header"><div><h2>Informasi dan rujukan sosial</h2><p>Kelola pengantar, rekomendasi umum, dan kontak rujukan yang ditampilkan kepada masyarakat.</p></div></div><div className="admin-grid">
               <Textarea label="Pengantar" value={data.socialContent.intro} onChange={(value) => updateSocialContent("intro", value)} />
-              <Textarea label="Catatan privasi" value={data.socialContent.privacyNote} onChange={(value) => updateSocialContent("privacyNote", value)} />
-              <Textarea label="Hambatan akses layanan" value={data.socialContent.accessBarriers.join("\n")} onChange={(value) => updateSocialContent("accessBarriers", lines(value))} />
+              <Textarea label="Keterangan data" value={data.socialContent.privacyNote} onChange={(value) => updateSocialContent("privacyNote", value)} />
               <Textarea label="Rekomendasi umum" value={data.socialContent.recommendations.join("\n")} onChange={(value) => updateSocialContent("recommendations", lines(value))} />
-              <Textarea label="Alur layanan sosial" value={data.socialContent.serviceFlow.join("\n")} onChange={(value) => updateSocialContent("serviceFlow", lines(value))} />
-              <Input label="Kontak rujukan" value={data.socialContent.referralContact} onChange={(value) => updateSocialContent("referralContact", value)} />
+              <Input label="Rujukan layanan sosial" value={data.socialContent.referralContact} onChange={(value) => updateSocialContent("referralContact", value)} />
             </div></section>
           </> : null}
 

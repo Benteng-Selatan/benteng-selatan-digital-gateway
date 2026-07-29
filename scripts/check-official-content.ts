@@ -4,6 +4,8 @@ const suspiciousPatterns: { label: string; pattern: RegExp }[] = [
   { label: "placeholder dalam kurung siku", pattern: /\[[^\]]*(?:belum|isi|nama|alamat|kontak)[^\]]*\]/i },
   { label: "teks belum diisi", pattern: /\bbelum\s+(?:diisi|tersedia|diverifikasi|diperbarui)\b/i },
   { label: "data contoh", pattern: /\b(?:data|konten|umkm|fasilitas|layanan)\s+contoh\b/i },
+  { label: "narasi prototipe", pattern: /\b(?:portal informasi awal|narasi final|layanan daring pilot|persyaratan awal)\b/i },
+  { label: "catatan internal publikasi", pattern: /\b(?:izin publikasi|izin untuk dipublikasikan|setelah memperoleh data resmi)\b/i },
 ];
 
 type Finding = {
@@ -34,7 +36,9 @@ function inspect(value: unknown, path: string, findings: Finding[]): void {
   }
 
   if (value && typeof value === "object") {
-    for (const [key, child] of Object.entries(value)) {
+    const record = value as Record<string, unknown>;
+    if (record.status === "draft") return;
+    for (const [key, child] of Object.entries(record)) {
       inspect(child, path ? `${path}.${key}` : key, findings);
     }
   }

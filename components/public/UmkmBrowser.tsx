@@ -44,7 +44,7 @@ export function UmkmBrowser({ items }: { items: UmkmItem[] }) {
               <h2>{item.name}</h2>
               <strong>{item.featuredProduct}</strong>
               <p>{item.description}</p>
-              <div className="card-meta"><MapPin size={16} /> {item.generalLocation || "Lokasi umum belum diisi"}</div>
+              {item.generalLocation ? <div className="card-meta"><MapPin size={16} /> {item.generalLocation}</div> : null}
               <Link href={`/umkm/${item.slug}`} className="text-link">Lihat profil usaha <ArrowRight size={17} /></Link>
             </div>
           </article>

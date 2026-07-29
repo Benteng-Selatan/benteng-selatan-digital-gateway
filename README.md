@@ -138,3 +138,8 @@ Integrasi BESTI pada v0.4.0 menggunakan tautan eksternal yang stabil. Integrasi 
 - `docs/ROLLBACK_GUIDE.md` — rollback.
 - `docs/OFFICIAL_DATA_CHECKLIST.md` — verifikasi data resmi.
 - `VALIDATION_HIGH_PRIORITY.md` — status validasi paket.
+
+
+## Pembaruan v0.4.1 — Content Polish
+
+Patch v0.4.1 menyempurnakan narasi publik pada beranda, profil, layanan, kesejahteraan, UMKM, peta, kontak, footer, dan Portal Warga. Normalisasi kompatibilitas hanya mengganti teks prototipe bawaan yang dikenal, sehingga konten kustom dan data Production tetap dipertahankan. Tidak ada migrasi database.
