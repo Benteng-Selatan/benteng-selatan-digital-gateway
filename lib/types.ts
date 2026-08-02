@@ -100,6 +100,40 @@ export interface SocialDashboard {
   };
 }
 
+
+export interface PopulationAgeGroup {
+  id: string;
+  label: string;
+  value: number;
+}
+
+export interface PopulationNeighborhood {
+  id: string;
+  rw: string;
+  rt: number;
+  male: number;
+  female: number;
+  total: number;
+  households: number;
+  populationCategory: string;
+}
+
+export interface PopulationDashboard {
+  status: PublishStatus;
+  period: string;
+  source: string;
+  note: string;
+  isSimulation: boolean;
+  totalPopulation: number;
+  male: number;
+  female: number;
+  households: number;
+  totalRt: number;
+  totalRw: number;
+  ageGroups: PopulationAgeGroup[];
+  neighborhoods: PopulationNeighborhood[];
+}
+
 export interface SocialContent {
   intro: string;
   accessBarriers: string[];
@@ -177,6 +211,7 @@ export interface SiteData {
   services: ServiceItem[];
   socialStatistics: SocialStatistic[];
   socialDashboard: SocialDashboard;
+  populationDashboard: PopulationDashboard;
   socialContent: SocialContent;
   umkm: UmkmItem[];
   mapLocations: MapLocation[];

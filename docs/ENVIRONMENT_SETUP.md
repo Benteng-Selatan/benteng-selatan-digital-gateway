@@ -86,7 +86,7 @@ Environment Production hanya boleh digunakan oleh deployment resmi.
 1. Jangan menggunakan koneksi database Production di `.env.local`.
 2. Jangan memasukkan `.env.local` ke Git.
 3. Jangan mengirim connection string melalui chat, email, atau dokumen publik.
-4. Jangan menjalankan `db:push` sebelum memastikan database yang digunakan.
+4. Jangan menjalankan `db:push` pada Preview atau Production; gunakan migration versioned dan periksa hostname target.
 5. Gunakan database Preview atau Development untuk pengujian.
 6. Lakukan backup sebelum mengubah schema Production.
 7. Setelah serah-terima, seluruh password dan secret harus diganti oleh pihak penerima.

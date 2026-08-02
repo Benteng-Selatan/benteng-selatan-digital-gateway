@@ -48,9 +48,8 @@ Persyaratan: Node.js 22 direkomendasikan.
 ```bash
 npm ci
 cp .env.example .env.local
-npm run db:push
-npm run db:migrate-high-priority
-npm run db:check-high-priority
+npm run db:migrate-v050
+npm run db:check-v050
 npm run dev
 ```
 
@@ -66,15 +65,18 @@ Alamat lokal:
 ```env
 DATABASE_URL=
 DATABASE_URL_UNPOOLED=
+DATABASE_TARGET_ENV=development
+DATABASE_ALLOWED_HOSTS=
 CMS_USERNAME=
 CMS_PASSWORD=
 CMS_SESSION_SECRET=
 CITIZEN_SESSION_SECRET=
 CITIZEN_DATA_ENCRYPTION_KEY=
 BLOB_READ_WRITE_TOKEN=
+CITIZEN_BLOB_READ_WRITE_TOKEN=
 ```
 
-`DATABASE_URL` digunakan aplikasi saat runtime. `DATABASE_URL_UNPOOLED` digunakan Drizzle saat `db:push` atau `db:studio`.
+`DATABASE_URL` digunakan aplikasi saat runtime. `DATABASE_URL_UNPOOLED`/`MIGRATION_DATABASE_URL` digunakan untuk migration dan pemeriksaan schema. `db:push` hanya boleh untuk eksperimen Development yang dapat dibuang, bukan Preview atau Production.
 
 `CITIZEN_DATA_ENCRYPTION_KEY` harus disimpan secara permanen. Menggantinya setelah data warga tersimpan akan membuat NIK/KK lama tidak dapat didekripsi.
 
@@ -86,21 +88,16 @@ node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
 
 ## Deployment Vercel
 
-1. Tambahkan seluruh environment variable ke scope **Production**.
-2. Buat backup database, lalu jalankan migrasi schema:
+Integrasi wajib dimulai pada Local/Development, dilanjutkan Preview, lalu Production setelah seluruh pemeriksaan lulus. Jangan memasukkan connection string atau secret ke repository.
+
+Migration v0.5.0:
 
 ```bash
-npm run db:migrate-high-priority
-npm run db:check-high-priority
+npm run db:migrate-v050
+npm run db:check-v050
 ```
 
-3. Deploy:
-
-```bash
-npx vercel --prod
-```
-
-4. Lakukan smoke test sesuai `docs/PORTAL_WARGA_MVP.md`.
+Production hanya boleh disentuh setelah backup valid, staged deployment, dan persetujuan eksplisit. Urutan lengkap tersedia pada `docs/DEPLOYMENT_V050.md`.
 
 ## Validasi
 
@@ -113,7 +110,7 @@ npm run build
 ## Batas MVP
 
 - Belum ada Google Login, magic link, email notification, Google Docs, atau Google Sheets.
-- Belum ada upload dokumen KTP/KK karena Blob yang aktif digunakan untuk media publik.
+- Belum ada upload dokumen KTP/KK. Upload gambar kontribusi warga menggunakan Blob private terpisah sebelum moderasi.
 - Verifikasi dokumen dilakukan melalui instruksi petugas dan pemeriksaan langsung.
 - Belum ada tanda tangan elektronik.
 - CMS utama masih menggunakan satu dokumen JSONB, tetapi perubahan publikasi kontribusi dan status submission kini ditulis secara transaksional.
@@ -143,3 +140,29 @@ Integrasi BESTI pada v0.4.0 menggunakan tautan eksternal yang stabil. Integrasi 
 ## Pembaruan v0.4.1 — Content Polish
 
 Patch v0.4.1 menyempurnakan narasi publik pada beranda, profil, layanan, kesejahteraan, UMKM, peta, kontak, footer, dan Portal Warga. Normalisasi kompatibilitas hanya mengganti teks prototipe bawaan yang dikenal, sehingga konten kustom dan data Production tetap dipertahankan. Tidak ada migrasi database.
+
+---
+
+## Rilis v0.5.0 — Kependudukan & Security Hardening
+
+Dokumen utama rilis:
+
+- `IMPLEMENTATION_SUMMARY_V050.md`
+- `CHANGELOG_V050.md`
+- `docs/KEPENDUDUKAN_MVP.md`
+- `docs/SECURITY_V050.md`
+- `docs/DEPLOYMENT_V050.md`
+- `docs/ROLLBACK_V050.md`
+- `docs/ACCEPTANCE_TEST_V050.md`
+- `docs/ROLE_PERMISSION_MATRIX_V050.md`
+- `docs/KNOWN_LIMITATIONS_V050.md`
+- `VALIDATION_V050.md`
+
+Untuk database gunakan migration versioned:
+
+```bash
+npm run db:migrate-v050
+npm run db:check-v050
+```
+
+Jangan gunakan `db:push` pada Production. Selalu cocokkan hostname dengan `DATABASE_ALLOWED_HOSTS`, lakukan backup, dan uji Development serta Preview terlebih dahulu.

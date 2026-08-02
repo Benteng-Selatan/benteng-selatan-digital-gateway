@@ -15,6 +15,7 @@ import type { SiteData } from "@/lib/types";
 export const cmsDocuments = pgTable("cms_documents", {
   id: text("id").primaryKey(),
   data: jsonb("data").$type<SiteData>().notNull(),
+  version: integer("version").notNull().default(1),
   updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" })
     .defaultNow()
     .notNull(),
@@ -218,3 +219,65 @@ export const auditLogs = pgTable(
   ]
 );
 
+
+
+export const actionRateLimits = pgTable(
+  "action_rate_limits",
+  {
+    key: text("key").primaryKey(),
+    scope: text("scope").notNull(),
+    actorId: text("actor_id").notNull().default("anonymous"),
+    attempts: integer("attempts").notNull().default(0),
+    windowStartedAt: timestamp("window_started_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
+    blockedUntil: timestamp("blocked_until", { withTimezone: true, mode: "date" }),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("action_rate_limits_scope_idx").on(table.scope),
+    index("action_rate_limits_blocked_until_idx").on(table.blockedUntil),
+  ]
+);
+
+export const idempotencyRecords = pgTable(
+  "idempotency_records",
+  {
+    key: text("key").primaryKey(),
+    scope: text("scope").notNull(),
+    actorId: text("actor_id").notNull(),
+    requestHash: text("request_hash").notNull(),
+    responseBody: jsonb("response_body").$type<Record<string, unknown>>().notNull(),
+    statusCode: integer("status_code").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true, mode: "date" }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("idempotency_records_scope_actor_idx").on(table.scope, table.actorId),
+    index("idempotency_records_expires_at_idx").on(table.expiresAt),
+  ]
+);
+
+export const pendingUploads = pgTable(
+  "pending_uploads",
+  {
+    id: text("id").primaryKey(),
+    citizenId: text("citizen_id")
+      .notNull()
+      .references(() => citizenUsers.id, { onDelete: "cascade" }),
+    submissionId: text("submission_id").references(() => contentSubmissions.id, { onDelete: "set null" }),
+    privateUrl: text("private_url").notNull(),
+    pathname: text("pathname").notNull(),
+    contentType: text("content_type").notNull(),
+    size: integer("size").notNull(),
+    width: integer("width").notNull(),
+    height: integer("height").notNull(),
+    status: text("status").notNull().default("pending"),
+    publishedUrl: text("published_url").notNull().default(""),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("pending_uploads_citizen_idx").on(table.citizenId),
+    index("pending_uploads_submission_idx").on(table.submissionId),
+    index("pending_uploads_status_idx").on(table.status),
+  ]
+);

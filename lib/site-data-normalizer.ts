@@ -1,13 +1,16 @@
 import seedData from "../data/site-data.seed.json";
 import { STORY_TYPES } from "./types";
 import type {
+  MapLocation,
   ContactData,
+  PopulationDashboard,
   ProfileData,
   ServiceItem,
   SiteData,
   SiteSettings,
   SocialContent,
   SocialDashboard,
+  SocialStatistic,
   StoryItem,
 } from "./types";
 
@@ -49,7 +52,7 @@ function normalizeCategory(category: string): string {
 function normalizeExternalUrl(value: string | undefined, fallback: string): string {
   try {
     const url = new URL(value || fallback);
-    return url.protocol === "https:" || url.protocol === "http:" ? url.toString() : fallback;
+    return url.protocol === "https:" ? url.toString() : fallback;
   } catch {
     return fallback;
   }
@@ -67,7 +70,9 @@ export function normalizeSiteData(input: SiteData): SiteData {
     contact?: Partial<ContactData>;
     services?: Array<Partial<ServiceItem> & Pick<ServiceItem, "id" | "slug" | "name" | "shortDescription" | "requirements" | "steps" | "serviceHours" | "location" | "contact" | "note" | "status">>;
     socialContent?: Partial<SocialContent>;
+    socialStatistics?: Array<Partial<SocialStatistic> & Pick<SocialStatistic, "id" | "category" | "value" | "description" | "status">>;
     socialDashboard?: Partial<SocialDashboard>;
+    populationDashboard?: Partial<PopulationDashboard>;
     stories?: Array<Partial<StoryItem> & Pick<StoryItem, "id" | "slug" | "title" | "category" | "excerpt" | "content" | "image" | "generalLocation" | "source" | "status">>;
   };
 
@@ -123,6 +128,31 @@ export function normalizeSiteData(input: SiteData): SiteData {
     ...defaultSiteData.services.filter((service) => service.featured && !existingServiceSlugs.has(service.slug)),
   ];
 
+  const defaultStatisticsById = new Map(
+    defaultSiteData.socialStatistics.map((item) => [item.id, item])
+  );
+  const fallbackSocialYear =
+    candidate.socialDashboard?.period?.match(/\b(20\d{2})\b/)?.[1] ||
+    defaultSiteData.socialStatistics[0]?.year ||
+    String(new Date().getFullYear());
+  const fallbackSocialSource =
+    candidate.socialDashboard?.source?.trim() ||
+    defaultSiteData.socialStatistics[0]?.source ||
+    "Data CMS lama - perlu verifikasi";
+  const socialStatistics: SocialStatistic[] = (
+    Array.isArray(candidate.socialStatistics)
+      ? candidate.socialStatistics
+      : defaultSiteData.socialStatistics
+  ).map((item) => {
+    const fallback = defaultStatisticsById.get(item.id);
+    return {
+      ...fallback,
+      ...item,
+      year: item.year?.trim() || fallback?.year || fallbackSocialYear,
+      source: item.source?.trim() || fallback?.source || fallbackSocialSource,
+    } as SocialStatistic;
+  });
+
   const legacyBarriers = [
     "Ringkasan hambatan akses layanan belum diisi",
     "Tambahkan hanya narasi anonim yang telah diverifikasi",
@@ -169,6 +199,87 @@ export function normalizeSiteData(input: SiteData): SiteData {
     deciles: { ...defaultSiteData.socialDashboard.deciles, ...rawDashboard?.deciles },
   };
 
+  const rawPopulation = candidate.populationDashboard;
+  const populationDashboard: PopulationDashboard = {
+    ...defaultSiteData.populationDashboard,
+    ...rawPopulation,
+    ageGroups: Array.isArray(rawPopulation?.ageGroups)
+      ? rawPopulation.ageGroups.map((item, index) => ({
+          id: item?.id?.trim() || `usia-${index + 1}`,
+          label: item?.label?.trim() || `Kelompok usia ${index + 1}`,
+          value: Number.isFinite(item?.value) ? Math.max(0, Math.trunc(item.value)) : 0,
+        }))
+      : defaultSiteData.populationDashboard.ageGroups,
+    neighborhoods: Array.isArray(rawPopulation?.neighborhoods)
+      ? rawPopulation.neighborhoods.map((item, index) => ({
+          id: item?.id?.trim() || `rw-${String(index + 1).padStart(2, "0")}`,
+          rw: item?.rw?.trim() || `RW ${String(index + 1).padStart(2, "0")}`,
+          rt: Number.isFinite(item?.rt) ? Math.max(0, Math.trunc(item.rt)) : 0,
+          male: Number.isFinite(item?.male) ? Math.max(0, Math.trunc(item.male)) : 0,
+          female: Number.isFinite(item?.female) ? Math.max(0, Math.trunc(item.female)) : 0,
+          total: Number.isFinite(item?.total) ? Math.max(0, Math.trunc(item.total)) : 0,
+          households: Number.isFinite(item?.households) ? Math.max(0, Math.trunc(item.households)) : 0,
+          populationCategory: item?.populationCategory?.trim() || "Belum ditentukan",
+        }))
+      : defaultSiteData.populationDashboard.neighborhoods,
+  };
+
+  const defaultMapLocationsById = new Map(
+    defaultSiteData.mapLocations.map((item) => [item.id, item])
+  );
+
+  const mapLocations: MapLocation[] = (
+    Array.isArray(candidate.mapLocations)
+      ? candidate.mapLocations
+      : defaultSiteData.mapLocations
+  ).map((item, index) => {
+    const fallback =
+      (item?.id ? defaultMapLocationsById.get(item.id) : undefined) ||
+      defaultSiteData.mapLocations[index];
+
+    const latitude =
+      typeof item?.latitude === "number" &&
+      Number.isFinite(item.latitude) &&
+      item.latitude >= -90 &&
+      item.latitude <= 90
+        ? item.latitude
+        : fallback?.latitude ?? null;
+
+    const longitude =
+      typeof item?.longitude === "number" &&
+      Number.isFinite(item.longitude) &&
+      item.longitude >= -180 &&
+      item.longitude <= 180
+        ? item.longitude
+        : fallback?.longitude ?? null;
+
+    return {
+      ...fallback,
+      ...item,
+      id: item?.id?.trim() || fallback?.id || `peta-${index + 1}`,
+      name: item?.name?.trim() || fallback?.name || `Lokasi ${index + 1}`,
+      category:
+        item?.category?.trim() ||
+        fallback?.category ||
+        "Fasilitas Umum",
+      description:
+        item?.description?.trim() ||
+        fallback?.description ||
+        "Deskripsi lokasi belum diisi. Perbarui melalui CMS sebelum dipublikasikan.",
+      latitude,
+      longitude,
+      generalLocation:
+        item?.generalLocation?.trim() ||
+        fallback?.generalLocation ||
+        "Benteng Selatan",
+      mapsUrl: normalizeExternalUrl(
+        item?.mapsUrl,
+        fallback?.mapsUrl || ""
+      ),
+      status: item?.status === "published" ? "published" : "draft",
+    };
+  });
+
   const sourceStories = candidate.stories || defaultSiteData.stories;
   const alreadyFeatured = sourceStories.some((story) => Boolean(story.featured));
   const fallbackDate = input.updatedAt?.slice(0, 10) || "";
@@ -197,8 +308,11 @@ export function normalizeSiteData(input: SiteData): SiteData {
     profile,
     contact,
     services,
+    socialStatistics,
     socialContent,
     socialDashboard: dashboard,
+    populationDashboard,
+    mapLocations,
     stories,
   };
 }

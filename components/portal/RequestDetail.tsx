@@ -14,7 +14,7 @@ export function RequestDetail({ initialRequest }: { initialRequest: Detail }) {
   const [message, setMessage] = useState("");
   const [statusMessage, setStatusMessage] = useState("");
   async function refresh() { const response = await fetch(`/api/citizen/requests/${request.id}`); const result = await response.json(); if (response.ok) setRequest(result.request); }
-  async function send(event: FormEvent) { event.preventDefault(); setStatusMessage(""); const response = await fetch(`/api/citizen/requests/${request.id}/messages`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message }) }); const result = await response.json(); if (!response.ok) { setStatusMessage(result.message || "Pesan gagal dikirim."); return; } setMessage(""); setStatusMessage("Pesan terkirim."); await refresh(); }
+  async function send(event: FormEvent) { event.preventDefault(); setStatusMessage(""); const response = await fetch(`/api/citizen/requests/${request.id}/messages`, { method: "POST", headers: { "Content-Type": "application/json", "Idempotency-Key": crypto.randomUUID() }, body: JSON.stringify({ message }) }); const result = await response.json(); if (!response.ok) { setStatusMessage(result.message || "Pesan gagal dikirim."); return; } setMessage(""); setStatusMessage("Pesan terkirim."); await refresh(); }
   return <div className="portal-grid">
     <section className="portal-main-column">
       <section className="portal-panel"><div className="portal-panel-heading"><div><span className={`workflow-badge ${request.status}`}>{REQUEST_STATUS_LABELS[request.status]}</span><h2>{request.requestNumber}</h2><p>Surat Keterangan Usaha</p></div></div>

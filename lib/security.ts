@@ -1,11 +1,38 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 
-function encryptionKey(): Buffer {
-  const source = process.env.CITIZEN_DATA_ENCRYPTION_KEY || process.env.CMS_SESSION_SECRET;
-  if (!source && process.env.NODE_ENV === "production") {
-    throw new Error("CITIZEN_DATA_ENCRYPTION_KEY atau CMS_SESSION_SECRET wajib tersedia di production.");
+export class SensitiveDataDecryptionError extends Error {
+  constructor() {
+    super("Data sensitif tidak dapat didekripsi. Periksa konfigurasi kunci enkripsi dan jangan mengubah kunci tanpa proses rotasi.");
+    this.name = "SensitiveDataDecryptionError";
   }
-  return createHash("sha256").update(source || "development-citizen-data-key").digest();
+}
+
+function deriveKey(source: string): Buffer {
+  return createHash("sha256").update(source).digest();
+}
+
+function encryptionKey(): Buffer {
+  const source = process.env.CITIZEN_DATA_ENCRYPTION_KEY;
+  if (!source) {
+    throw new Error("CITIZEN_DATA_ENCRYPTION_KEY wajib tersedia dan tidak boleh menggunakan session secret.");
+  }
+  if (source.length < 32) throw new Error("CITIZEN_DATA_ENCRYPTION_KEY minimal 32 karakter.");
+  return deriveKey(source);
+}
+
+function legacyEncryptionKey(): Buffer | null {
+  const source = process.env.CITIZEN_DATA_LEGACY_ENCRYPTION_KEY;
+  return source ? deriveKey(source) : null;
+}
+
+function decryptWithKey(parts: string[], key: Buffer): string {
+  const [ivPart, tagPart, encryptedPart] = parts;
+  const decipher = createDecipheriv("aes-256-gcm", key, Buffer.from(ivPart, "base64url"));
+  decipher.setAuthTag(Buffer.from(tagPart, "base64url"));
+  return Buffer.concat([
+    decipher.update(Buffer.from(encryptedPart, "base64url")),
+    decipher.final(),
+  ]).toString("utf8");
 }
 
 export function encryptSensitive(value: string): string {
@@ -15,23 +42,24 @@ export function encryptSensitive(value: string): string {
   const cipher = createCipheriv("aes-256-gcm", encryptionKey(), iv);
   const encrypted = Buffer.concat([cipher.update(normalized, "utf8"), cipher.final()]);
   const tag = cipher.getAuthTag();
-  return [iv, tag, encrypted].map((part) => part.toString("base64url")).join(".");
+  return ["v2", iv, tag, encrypted].map((part) => typeof part === "string" ? part : part.toString("base64url")).join(".");
 }
 
 export function decryptSensitive(value: string): string {
   if (!value) return "";
-  const [ivPart, tagPart, encryptedPart] = value.split(".");
-  if (!ivPart || !tagPart || !encryptedPart) return "";
-  try {
-    const decipher = createDecipheriv("aes-256-gcm", encryptionKey(), Buffer.from(ivPart, "base64url"));
-    decipher.setAuthTag(Buffer.from(tagPart, "base64url"));
-    return Buffer.concat([
-      decipher.update(Buffer.from(encryptedPart, "base64url")),
-      decipher.final(),
-    ]).toString("utf8");
-  } catch {
-    return "";
+  const rawParts = value.split(".");
+  const parts = rawParts[0] === "v2" ? rawParts.slice(1) : rawParts;
+  if (parts.length !== 3 || parts.some((part) => !part)) throw new SensitiveDataDecryptionError();
+
+  const keys = [encryptionKey(), legacyEncryptionKey()].filter((key): key is Buffer => Boolean(key));
+  for (const key of keys) {
+    try {
+      return decryptWithKey(parts, key);
+    } catch {
+      // Try the explicitly configured legacy key before reporting a controlled failure.
+    }
   }
+  throw new SensitiveDataDecryptionError();
 }
 
 export function hashPassword(password: string): string {

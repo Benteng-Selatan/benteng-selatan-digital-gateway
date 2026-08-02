@@ -56,7 +56,8 @@ Tabel `cms_documents` lama tetap dipertahankan.
 Sebelum menjalankan perubahan schema, buat backup Neon. Kemudian:
 
 ```bash
-npm run db:push
+npm run db:migrate-v050
+npm run db:check-v050
 ```
 
 Pastikan tabel baru muncul melalui Neon SQL Editor:

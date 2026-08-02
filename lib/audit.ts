@@ -5,6 +5,13 @@ import type { AdminSession } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { auditLogs } from "@/lib/db/schema";
 
+export interface AuditActorIdentity {
+  id: string;
+  username: string;
+  name: string;
+  role: string;
+}
+
 export interface AuditContext {
   ipAddress: string;
   userAgent: string;
@@ -21,6 +28,7 @@ export function auditContextFromRequest(request?: Request): AuditContext {
 
 export function auditValues(input: {
   actor?: AdminSession | null;
+  actorIdentity?: AuditActorIdentity;
   action: string;
   entityType: string;
   entityId?: string;
@@ -29,10 +37,10 @@ export function auditValues(input: {
 }) {
   return {
     id: randomUUID(),
-    actorId: input.actor?.userId || null,
-    actorUsername: input.actor?.username || "anonymous",
-    actorName: input.actor?.fullName || "Anonymous",
-    actorRole: input.actor?.role || "anonymous",
+    actorId: input.actor?.userId || input.actorIdentity?.id || null,
+    actorUsername: input.actor?.username || input.actorIdentity?.username || "anonymous",
+    actorName: input.actor?.fullName || input.actorIdentity?.name || "Anonymous",
+    actorRole: input.actor?.role || input.actorIdentity?.role || "anonymous",
     action: input.action,
     entityType: input.entityType,
     entityId: input.entityId || "",

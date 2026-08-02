@@ -4,7 +4,7 @@ import { and, desc, eq } from "drizzle-orm";
 import type { AdminSession } from "@/lib/auth";
 import { auditValues, type AuditContext } from "@/lib/audit";
 import { getCitizenSession } from "@/lib/citizen-auth";
-import { getSiteData } from "@/lib/cms";
+import { CmsConflictError, getSiteDocument } from "@/lib/cms";
 import { db, sql } from "@/lib/db";
 import {
   citizenUsers,
@@ -23,7 +23,10 @@ import {
   type SubmissionStatus,
 } from "@/lib/portal-types";
 import { decryptSensitive, encryptSensitive, hashPassword, verifyPassword } from "@/lib/security";
-import { STORY_CATEGORIES, STORY_TYPES, type MapLocation, type StoryItem, type UmkmItem } from "@/lib/types";
+import { assertPendingUploadOwnership, preparePendingUploadPublication, rollbackPendingUploadPromotion } from "@/lib/citizen-uploads";
+import type { AdminRole } from "@/lib/admin-permissions";
+import { STORY_CATEGORIES, STORY_TYPES, type MapLocation, type SiteData, type StoryItem, type UmkmItem } from "@/lib/types";
+import { siteDataValidationErrors } from "@/lib/site-data-validation";
 
 function clean(value: unknown, max = 500): string {
   return typeof value === "string" ? value.trim().slice(0, max) : "";
@@ -39,7 +42,7 @@ function safePublicUrl(value: unknown, allowLocalImage = false): string {
   if (allowLocalImage && input.startsWith("/images/")) return input;
   try {
     const parsed = new URL(input);
-    return parsed.protocol === "https:" || parsed.protocol === "http:" ? parsed.toString() : "";
+    return parsed.protocol === "https:" ? parsed.toString() : "";
   } catch {
     return "";
   }
@@ -123,7 +126,7 @@ export async function getCurrentCitizen() {
   return user;
 }
 
-export async function createServiceRequest(citizenId: string, input: Record<string, unknown>) {
+export async function createServiceRequest(citizenId: string, input: Record<string, unknown>, context?: AuditContext) {
   const applicantName = clean(input.applicantName, 120);
   const identityNumber = clean(input.identityNumber, 20);
   const familyCardNumber = clean(input.familyCardNumber, 20);
@@ -148,6 +151,15 @@ export async function createServiceRequest(citizenId: string, input: Record<stri
   const now = new Date();
   const historyId = randomUUID();
   const formData = { businessName, businessType, businessAddress, purpose };
+  const [citizen] = await db.select({ email: citizenUsers.email, fullName: citizenUsers.fullName }).from(citizenUsers).where(eq(citizenUsers.id, citizenId)).limit(1);
+  const audit = auditValues({
+    actorIdentity: { id: citizenId, username: citizen?.email || "citizen", name: citizen?.fullName || applicantName, role: "citizen" },
+    action: "request.create",
+    entityType: "service_request",
+    entityId: id,
+    metadata: { requestNumber: number, serviceCode: PILOT_SERVICE.code },
+    context,
+  });
   await sql.transaction([
     sql`INSERT INTO service_requests (
       id, request_number, citizen_id, service_code, status, applicant_name,
@@ -163,6 +175,8 @@ export async function createServiceRequest(citizenId: string, input: Record<stri
     ) VALUES (
       ${historyId}, ${id}, '', 'submitted', ${applicantName}, 'Pengajuan dikirim oleh warga.', ${now}
     )`,
+    sql`INSERT INTO audit_logs (id, actor_id, actor_username, actor_name, actor_role, action, entity_type, entity_id, metadata, ip_address, user_agent, created_at)
+      VALUES (${audit.id}, ${audit.actorId}, ${audit.actorUsername}, ${audit.actorName}, ${audit.actorRole}, ${audit.action}, ${audit.entityType}, ${audit.entityId}, ${JSON.stringify(audit.metadata)}::jsonb, ${audit.ipAddress}, ${audit.userAgent}, ${audit.createdAt})`,
   ]);
   return { id, requestNumber: number };
 }
@@ -203,17 +217,29 @@ export async function getCitizenRequest(citizenId: string, requestId: string) {
   };
 }
 
-export async function addCitizenMessage(citizenId: string, requestId: string, messageInput: unknown) {
+export async function addCitizenMessage(citizenId: string, requestId: string, messageInput: unknown, context?: AuditContext) {
   const message = clean(messageInput, 1500);
   if (message.length < 2) throw new Error("Pesan terlalu pendek.");
   const [request] = await db.select({ id: serviceRequests.id }).from(serviceRequests).where(and(eq(serviceRequests.id, requestId), eq(serviceRequests.citizenId, citizenId))).limit(1);
   if (!request) throw new Error("Pengajuan tidak ditemukan.");
   const [user] = await db.select({ fullName: citizenUsers.fullName }).from(citizenUsers).where(eq(citizenUsers.id, citizenId)).limit(1);
   const now = new Date();
+  const messageId = randomUUID();
+  const [citizen] = await db.select({ email: citizenUsers.email, fullName: citizenUsers.fullName }).from(citizenUsers).where(eq(citizenUsers.id, citizenId)).limit(1);
+  const audit = auditValues({
+    actorIdentity: { id: citizenId, username: citizen?.email || "citizen", name: citizen?.fullName || user?.fullName || "Warga", role: "citizen" },
+    action: "request.message_citizen",
+    entityType: "service_request",
+    entityId: requestId,
+    metadata: { messageId },
+    context,
+  });
   await sql.transaction([
     sql`INSERT INTO service_request_messages (id, request_id, sender_type, sender_label, message, is_internal, created_at)
-        VALUES (${randomUUID()}, ${requestId}, 'citizen', ${user?.fullName || "Warga"}, ${message}, false, ${now})`,
+        VALUES (${messageId}, ${requestId}, 'citizen', ${user?.fullName || "Warga"}, ${message}, false, ${now})`,
     sql`UPDATE service_requests SET updated_at=${now} WHERE id=${requestId}`,
+    sql`INSERT INTO audit_logs (id, actor_id, actor_username, actor_name, actor_role, action, entity_type, entity_id, metadata, ip_address, user_agent, created_at)
+      VALUES (${audit.id}, ${audit.actorId}, ${audit.actorUsername}, ${audit.actorName}, ${audit.actorRole}, ${audit.action}, ${audit.entityType}, ${audit.entityId}, ${JSON.stringify(audit.metadata)}::jsonb, ${audit.ipAddress}, ${audit.userAgent}, ${audit.createdAt})`,
   ]);
 }
 
@@ -221,11 +247,18 @@ function submissionTitle(type: ContributionType, payload: Record<string, string 
   return String(type === "umkm" ? payload.name : type === "tourism" ? payload.title : payload.name || "Pengajuan warga");
 }
 
-export async function createContentSubmission(citizenId: string, input: Record<string, unknown>) {
+export async function createContentSubmission(
+  citizenId: string,
+  input: Record<string, unknown>,
+  context?: AuditContext
+) {
   const type = clean(input.type, 20) as ContributionType;
   if (!CONTRIBUTION_TYPES.includes(type)) throw new Error("Jenis kontribusi tidak valid.");
 
   const payload: Record<string, string | number | boolean | null> = {};
+  let linkedUploadId: string | null = null;
+  const requestedImage = clean(input.image, 1000);
+
   if (type === "umkm") {
     payload.name = clean(input.name, 150);
     payload.category = clean(input.category, 80);
@@ -235,7 +268,6 @@ export async function createContentSubmission(citizenId: string, input: Record<s
     payload.generalLocation = clean(input.generalLocation, 250);
     payload.instagram = safePublicUrl(input.instagram);
     payload.marketplace = safePublicUrl(input.marketplace);
-    payload.image = safePublicUrl(input.image, true) || "/images/umkm-placeholder.svg";
     payload.contactApproved = Boolean(input.contactApproved);
     if (String(payload.name).length < 3 || String(payload.description).length < 20) throw new Error("Nama dan deskripsi UMKM belum lengkap.");
   } else if (type === "tourism") {
@@ -249,7 +281,6 @@ export async function createContentSubmission(citizenId: string, input: Record<s
     payload.eventDate = clean(input.eventDate, 20);
     payload.generalLocation = clean(input.generalLocation, 250);
     payload.source = clean(input.source, 300);
-    payload.image = safePublicUrl(input.image, true) || "/images/story-placeholder.svg";
     if (String(payload.title).length < 3 || String(payload.content).length < 30) throw new Error("Judul dan isi Kabar belum lengkap.");
   } else {
     payload.name = clean(input.name, 150);
@@ -264,17 +295,50 @@ export async function createContentSubmission(citizenId: string, input: Record<s
     if (String(payload.name).length < 3 || String(payload.description).length < 15) throw new Error("Nama dan deskripsi lokasi belum lengkap.");
   }
 
+  if (type !== "map") {
+    if (requestedImage) {
+      const upload = await assertPendingUploadOwnership(citizenId, requestedImage);
+      if (!upload) throw new Error("Gambar kontribusi harus diunggah melalui formulir yang tersedia.");
+      linkedUploadId = upload.id;
+      payload.image = requestedImage;
+    } else {
+      payload.image = type === "umkm" ? "/images/umkm-placeholder.svg" : "/images/story-placeholder.svg";
+    }
+  }
+
   const id = randomUUID();
   const number = submissionNumber(type);
-  await db.insert(contentSubmissions).values({
-    id,
-    submissionNumber: number,
-    citizenId,
-    type,
-    status: "submitted",
-    payload,
-    updatedAt: new Date(),
+  const now = new Date();
+  const [citizen] = await db.select({ email: citizenUsers.email, fullName: citizenUsers.fullName }).from(citizenUsers).where(eq(citizenUsers.id, citizenId)).limit(1);
+  const audit = auditValues({
+    actorIdentity: { id: citizenId, username: citizen?.email || "citizen", name: citizen?.fullName || "Warga", role: "citizen" },
+    action: "submission.create",
+    entityType: "content_submission",
+    entityId: id,
+    metadata: { submissionNumber: number, type, linkedUploadId },
+    context,
   });
+  if (linkedUploadId) {
+    await sql.transaction([
+      sql`UPDATE pending_uploads SET submission_id=${id}, status='linked', updated_at=${now}
+        WHERE id=${linkedUploadId} AND citizen_id=${citizenId} AND status='pending' AND submission_id IS NULL`,
+      sql`INSERT INTO content_submissions (id, submission_number, citizen_id, type, status, payload, review_note, published_item_id, created_at, updated_at)
+        SELECT ${id}, ${number}, ${citizenId}, ${type}, 'submitted', ${JSON.stringify(payload)}::jsonb, '', '', ${now}, ${now}
+        WHERE EXISTS (SELECT 1 FROM pending_uploads WHERE id=${linkedUploadId} AND citizen_id=${citizenId} AND submission_id=${id} AND status='linked')`,
+      sql`INSERT INTO audit_logs (id, actor_id, actor_username, actor_name, actor_role, action, entity_type, entity_id, metadata, ip_address, user_agent, created_at)
+        SELECT ${audit.id}, ${audit.actorId}, ${audit.actorUsername}, ${audit.actorName}, ${audit.actorRole}, ${audit.action}, ${audit.entityType}, ${audit.entityId}, ${JSON.stringify(audit.metadata)}::jsonb, ${audit.ipAddress}, ${audit.userAgent}, ${audit.createdAt}
+        WHERE EXISTS (SELECT 1 FROM content_submissions WHERE id=${id})`,
+    ]);
+    const [created] = await db.select({ id: contentSubmissions.id }).from(contentSubmissions).where(eq(contentSubmissions.id, id)).limit(1);
+    if (!created) throw new Error("Gambar sudah digunakan oleh kontribusi lain. Unggah ulang gambar lalu kirim kembali.");
+  } else {
+    await sql.transaction([
+      sql`INSERT INTO content_submissions (id, submission_number, citizen_id, type, status, payload, review_note, published_item_id, created_at, updated_at)
+        VALUES (${id}, ${number}, ${citizenId}, ${type}, 'submitted', ${JSON.stringify(payload)}::jsonb, '', '', ${now}, ${now})`,
+      sql`INSERT INTO audit_logs (id, actor_id, actor_username, actor_name, actor_role, action, entity_type, entity_id, metadata, ip_address, user_agent, created_at)
+        VALUES (${audit.id}, ${audit.actorId}, ${audit.actorUsername}, ${audit.actorName}, ${audit.actorRole}, ${audit.action}, ${audit.entityType}, ${audit.entityId}, ${JSON.stringify(audit.metadata)}::jsonb, ${audit.ipAddress}, ${audit.userAgent}, ${audit.createdAt})`,
+    ]);
+  }
   return { id, submissionNumber: number, title: submissionTitle(type, payload) };
 }
 
@@ -291,7 +355,15 @@ export async function listCitizenSubmissions(citizenId: string) {
   }));
 }
 
-export async function listStaffRequests() {
+function restrictedRole(role: AdminRole): boolean {
+  return role === "reviewer" || role === "auditor";
+}
+
+function pseudonym(reference: string): string {
+  return `Pemohon ${reference.slice(-4)}`;
+}
+
+export async function listStaffRequests(role: AdminRole) {
   const rows = await db
     .select({
       id: serviceRequests.id,
@@ -306,9 +378,12 @@ export async function listStaffRequests() {
     .leftJoin(citizenUsers, eq(serviceRequests.citizenId, citizenUsers.id))
     .orderBy(desc(serviceRequests.updatedAt));
 
+  const restricted = restrictedRole(role);
   return rows.map((row) => ({
     ...row,
-    citizenEmail: row.citizenEmail || "",
+    applicantName: restricted ? pseudonym(row.requestNumber) : row.applicantName,
+    citizenEmail: restricted ? "" : (row.citizenEmail || ""),
+    privacyRestricted: restricted,
     status: row.status as ServiceRequestStatus,
     submittedAt: row.submittedAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
@@ -321,7 +396,7 @@ function maskIdentity(value: string): string {
   return `${value.slice(0, 4)}${"*".repeat(value.length - 8)}${value.slice(-4)}`;
 }
 
-export async function getStaffRequest(requestId: string, includeSensitive = false) {
+export async function getStaffRequest(requestId: string, role: AdminRole, includeSensitive = false) {
   const [row] = await db
     .select({ request: serviceRequests, citizenEmail: citizenUsers.email })
     .from(serviceRequests)
@@ -329,27 +404,41 @@ export async function getStaffRequest(requestId: string, includeSensitive = fals
     .where(eq(serviceRequests.id, requestId))
     .limit(1);
   if (!row) return null;
-  const messages = await db.select().from(serviceRequestMessages).where(eq(serviceRequestMessages.requestId, requestId)).orderBy(serviceRequestMessages.createdAt);
+
+  const restricted = restrictedRole(role);
+  const messages = restricted ? [] : await db.select().from(serviceRequestMessages).where(eq(serviceRequestMessages.requestId, requestId)).orderBy(serviceRequestMessages.createdAt);
   const history = await db.select().from(serviceRequestHistory).where(eq(serviceRequestHistory.requestId, requestId)).orderBy(serviceRequestHistory.createdAt);
-  const {
-    identityNumberEncrypted,
-    familyCardNumberEncrypted,
-    ...safeRequest
-  } = row.request;
-  const identityNumber = decryptSensitive(identityNumberEncrypted);
-  const familyCardNumber = decryptSensitive(familyCardNumberEncrypted);
+  const { identityNumberEncrypted, familyCardNumberEncrypted, ...safeRequest } = row.request;
+  const identityNumber = restricted ? "" : decryptSensitive(identityNumberEncrypted);
+  const familyCardNumber = restricted ? "" : decryptSensitive(familyCardNumberEncrypted);
+  const allowFullSensitive = includeSensitive && !restricted;
+
   return {
     ...safeRequest,
-    citizenEmail: row.citizenEmail || "",
-    identityNumber: includeSensitive ? identityNumber : maskIdentity(identityNumber),
-    familyCardNumber: includeSensitive ? familyCardNumber : maskIdentity(familyCardNumber),
-    sensitiveDataMasked: !includeSensitive,
+    applicantName: restricted ? pseudonym(row.request.requestNumber) : row.request.applicantName,
+    citizenEmail: restricted ? "" : (row.citizenEmail || ""),
+    phone: restricted ? "" : row.request.phone,
+    address: restricted ? "" : row.request.address,
+    formData: restricted
+      ? { ...row.request.formData, businessAddress: "" }
+      : row.request.formData,
+    citizenNote: restricted ? "" : row.request.citizenNote,
+    staffNote: restricted ? "" : row.request.staffNote,
+    identityNumber: restricted ? "" : (allowFullSensitive ? identityNumber : maskIdentity(identityNumber)),
+    familyCardNumber: restricted ? "" : (allowFullSensitive ? familyCardNumber : maskIdentity(familyCardNumber)),
+    sensitiveDataMasked: !allowFullSensitive,
+    privacyRestricted: restricted,
     status: row.request.status as ServiceRequestStatus,
     submittedAt: row.request.submittedAt.toISOString(),
     updatedAt: row.request.updatedAt.toISOString(),
     completedAt: row.request.completedAt?.toISOString() || null,
     messages: messages.map((item) => ({ ...item, createdAt: item.createdAt.toISOString() })),
-    history: history.map((item) => ({ ...item, createdAt: item.createdAt.toISOString() })),
+    history: history.map((item) => ({
+      ...item,
+      changedBy: restricted ? "Petugas" : item.changedBy,
+      note: restricted ? "" : item.note,
+      createdAt: item.createdAt.toISOString(),
+    })),
   };
 }
 
@@ -415,19 +504,24 @@ export async function addStaffMessage(
   ]);
 }
 
-export async function listStaffSubmissions() {
+export async function listStaffSubmissions(role: AdminRole) {
   const rows = await db
     .select({ submission: contentSubmissions, citizenName: citizenUsers.fullName, citizenEmail: citizenUsers.email })
     .from(contentSubmissions)
     .leftJoin(citizenUsers, eq(contentSubmissions.citizenId, citizenUsers.id))
     .orderBy(desc(contentSubmissions.updatedAt));
+  const hideIdentity = role === "reviewer" || role === "auditor";
+  const hidePayload = role === "auditor";
   return rows.map(({ submission, citizenName, citizenEmail }) => ({
     ...submission,
+    payload: hidePayload ? {} : submission.payload,
     type: submission.type as ContributionType,
     status: submission.status as SubmissionStatus,
     title: submissionTitle(submission.type as ContributionType, submission.payload),
-    citizenName: citizenName || "",
-    citizenEmail: citizenEmail || "",
+    citizenName: hideIdentity ? "Warga terverifikasi" : (citizenName || ""),
+    citizenEmail: hideIdentity ? "" : (citizenEmail || ""),
+    privacyRestricted: hideIdentity,
+    payloadRestricted: hidePayload,
     createdAt: submission.createdAt.toISOString(),
     updatedAt: submission.updatedAt.toISOString(),
     publishedAt: submission.publishedAt?.toISOString() || null,
@@ -439,9 +533,10 @@ function slugify(value: string): string {
 }
 
 function applySubmissionPublication(
-  data: Awaited<ReturnType<typeof getSiteData>>,
+  data: SiteData,
   row: typeof contentSubmissions.$inferSelect,
-  shouldPublish: boolean
+  shouldPublish: boolean,
+  publishedImageUrl?: string
 ) {
   const itemId = row.publishedItemId || `warga-${row.id}`;
   const payload = row.payload;
@@ -466,7 +561,7 @@ function applySubmissionPublication(
       category: String(payload.category || "Lainnya"),
       featuredProduct: String(payload.featuredProduct || ""),
       description: String(payload.description || ""),
-      image: String(payload.image || "/images/umkm-placeholder.svg"),
+      image: publishedImageUrl || String(payload.image || "/images/umkm-placeholder.svg"),
       publicContact: String(payload.publicContact || ""),
       contactApproved: Boolean(payload.contactApproved),
       generalLocation: String(payload.generalLocation || "Benteng Selatan"),
@@ -483,7 +578,7 @@ function applySubmissionPublication(
       category: String(payload.category || "Kegiatan Kelurahan"),
       excerpt: String(payload.excerpt || ""),
       content: String(payload.content || ""),
-      image: String(payload.image || "/images/story-placeholder.svg"),
+      image: publishedImageUrl || String(payload.image || "/images/story-placeholder.svg"),
       generalLocation: String(payload.generalLocation || "Benteng Selatan"),
       source: String(payload.source || "Pengajuan warga, diverifikasi kelurahan"),
       articleType: STORY_TYPES.includes(String(payload.articleType) as (typeof STORY_TYPES)[number]) ? String(payload.articleType) as StoryItem["articleType"] : "article",
@@ -522,28 +617,104 @@ export async function updateStaffSubmission(
   const [current] = await db.select().from(contentSubmissions).where(eq(contentSubmissions.id, submissionId)).limit(1);
   if (!current) throw new Error("Kontribusi tidak ditemukan.");
 
-  const siteData = await getSiteData();
-  const shouldPublish = status === "published";
-  const publication = applySubmissionPublication(siteData, current, shouldPublish);
   const now = new Date();
+  const changesPublicContent = status === "published" || current.status === "published";
+
+  if (!changesPublicContent) {
+    const audit = auditValues({
+      actor,
+      context,
+      action: "submission.review",
+      entityType: "content_submission",
+      entityId: submissionId,
+      metadata: {
+        previousStatus: current.status,
+        status,
+        reviewNoteChanged: reviewNote !== current.reviewNote,
+      },
+    });
+    await sql.transaction([
+      sql`UPDATE content_submissions SET status=${status}, review_note=${reviewNote}, updated_at=${now}
+        WHERE id=${submissionId}`,
+      sql`UPDATE pending_uploads SET status=CASE WHEN ${status}='rejected' THEN 'rejected' ELSE 'linked' END, updated_at=${now}
+        WHERE submission_id=${submissionId} AND status IN ('linked','rejected')`,
+      sql`INSERT INTO audit_logs (id, actor_id, actor_username, actor_name, actor_role, action, entity_type, entity_id, metadata, ip_address, user_agent, created_at)
+        VALUES (${audit.id}, ${audit.actorId}, ${audit.actorUsername}, ${audit.actorName}, ${audit.actorRole}, ${audit.action}, ${audit.entityType}, ${audit.entityId}, ${JSON.stringify(audit.metadata)}::jsonb, ${audit.ipAddress}, ${audit.userAgent}, ${audit.createdAt})`,
+    ]);
+    return;
+  }
+
+  const document = await getSiteDocument();
+  const shouldPublish = status === "published";
+  const promoted = shouldPublish
+    ? await preparePendingUploadPublication(current.payload.image, submissionId)
+    : null;
+  const publication = applySubmissionPublication(document.data, current, shouldPublish, promoted?.publicUrl);
+  const validationErrors = siteDataValidationErrors(publication.data);
+  if (validationErrors.length > 0) {
+    throw new Error(`Konten hasil moderasi tidak valid: ${validationErrors.slice(0, 3).join("; ")}`);
+  }
+
+  const nextVersion = document.version + 1;
   const publishedAt = shouldPublish ? now : null;
-  const storedPublishedItemId = shouldPublish || current.publishedItemId ? publication.itemId : "";
-  const action = shouldPublish ? "submission.publish" : current.status === "published" ? "submission.unpublish" : "submission.review";
+  const storedPublishedItemId = (shouldPublish || Boolean(current.publishedItemId)) ? publication.itemId : "";
+  const action = shouldPublish ? "submission.publish" : "submission.unpublish";
   const audit = auditValues({
     actor,
     context,
     action,
     entityType: "content_submission",
     entityId: submissionId,
-    metadata: { previousStatus: current.status, status, publishedItemId: storedPublishedItemId },
+    metadata: {
+      previousStatus: current.status,
+      status,
+      publishedItemId: storedPublishedItemId,
+      previousCmsVersion: document.version,
+      cmsVersion: nextVersion,
+      promotedUploadId: promoted?.uploadId || null,
+    },
   });
 
-  await sql.transaction([
-    sql`INSERT INTO cms_documents (id, data, updated_at)
-      VALUES ('main', ${JSON.stringify(publication.data)}::jsonb, ${now})
-      ON CONFLICT (id) DO UPDATE SET data=EXCLUDED.data, updated_at=EXCLUDED.updated_at`,
-    sql`UPDATE content_submissions SET status=${status}, review_note=${reviewNote}, published_item_id=${storedPublishedItemId}, published_at=${publishedAt}, updated_at=${now} WHERE id=${submissionId}`,
+  const queries = [
+    sql`UPDATE cms_documents SET data=${JSON.stringify(publication.data)}::jsonb, version=${nextVersion}, updated_at=${now}
+      WHERE id='main' AND version=${document.version} RETURNING version`,
+    sql`UPDATE content_submissions SET status=${status}, review_note=${reviewNote}, published_item_id=${storedPublishedItemId}, published_at=${publishedAt}, updated_at=${now}
+      WHERE id=${submissionId} AND EXISTS (SELECT 1 FROM cms_documents WHERE id='main' AND version=${nextVersion} AND updated_at=${now})`,
     sql`INSERT INTO audit_logs (id, actor_id, actor_username, actor_name, actor_role, action, entity_type, entity_id, metadata, ip_address, user_agent, created_at)
-      VALUES (${audit.id}, ${audit.actorId}, ${audit.actorUsername}, ${audit.actorName}, ${audit.actorRole}, ${audit.action}, ${audit.entityType}, ${audit.entityId}, ${JSON.stringify(audit.metadata)}::jsonb, ${audit.ipAddress}, ${audit.userAgent}, ${audit.createdAt})`,
-  ]);
+      SELECT ${audit.id}, ${audit.actorId}, ${audit.actorUsername}, ${audit.actorName}, ${audit.actorRole}, ${audit.action}, ${audit.entityType}, ${audit.entityId}, ${JSON.stringify(audit.metadata)}::jsonb, ${audit.ipAddress}, ${audit.userAgent}, ${audit.createdAt}
+      WHERE EXISTS (SELECT 1 FROM cms_documents WHERE id='main' AND version=${nextVersion} AND updated_at=${now})`,
+  ];
+  if (promoted) {
+    queries.push(sql`UPDATE pending_uploads SET status='published', published_url=${promoted.publicUrl}, updated_at=${now}
+      WHERE id=${promoted.uploadId} AND submission_id=${submissionId}
+        AND EXISTS (SELECT 1 FROM cms_documents WHERE id='main' AND version=${nextVersion} AND updated_at=${now})`);
+  } else if (!shouldPublish) {
+    queries.push(sql`UPDATE pending_uploads SET status='linked', updated_at=${now}
+      WHERE submission_id=${submissionId} AND status IN ('published','promoted')
+        AND EXISTS (SELECT 1 FROM cms_documents WHERE id='main' AND version=${nextVersion} AND updated_at=${now})`);
+  }
+  let results: unknown[];
+  try {
+    results = await sql.transaction(queries);
+  } catch (error) {
+    if (promoted?.newlyPromoted) {
+      try {
+        await rollbackPendingUploadPromotion(promoted.uploadId, promoted.publicUrl);
+      } catch (rollbackError) {
+        console.error("Gagal membatalkan promosi Blob setelah transaksi publikasi gagal:", rollbackError);
+      }
+    }
+    throw error;
+  }
+  const updateRows = results[0] as unknown as Array<{ version: number }>;
+  if (!Array.isArray(updateRows) || updateRows.length === 0) {
+    if (promoted?.newlyPromoted) {
+      try {
+        await rollbackPendingUploadPromotion(promoted.uploadId, promoted.publicUrl);
+      } catch (rollbackError) {
+        console.error("Gagal membatalkan promosi Blob setelah konflik CMS:", rollbackError);
+      }
+    }
+    throw new CmsConflictError();
+  }
 }

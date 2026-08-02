@@ -1,6 +1,6 @@
 {
   "name": "benteng-selatan-digital-gateway",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -16,7 +16,10 @@
     "db:check-high-priority": "tsx scripts/check-high-priority-schema.ts",
     "db:migrate-high-priority": "node scripts/apply-high-priority-migration.mjs",
     "content:check-official": "tsx scripts/check-official-content.ts",
-    "content:check-v040": "tsx scripts/check-v040-compatibility.ts"
+    "content:check-v040": "tsx scripts/check-v040-compatibility.ts",
+    "db:migrate-v050": "node scripts/apply-v050-migration.mjs",
+    "db:check-v050": "tsx scripts/check-v050-schema.ts",
+    "uploads:cleanup-pending": "tsx scripts/cleanup-pending-uploads.ts"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",

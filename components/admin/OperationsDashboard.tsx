@@ -25,12 +25,14 @@ type StaffRequest = {
   citizenEmail: string;
   updatedAt: string;
   submittedAt: string;
+  privacyRestricted?: boolean;
 };
 
 type RequestDetail = StaffRequest & {
   identityNumber: string;
   familyCardNumber: string;
   sensitiveDataMasked: boolean;
+  privacyRestricted?: boolean;
   phone: string;
   address: string;
   formData: Record<string, string>;
@@ -52,6 +54,8 @@ type Submission = {
   payload: Record<string, unknown>;
   reviewNote: string;
   updatedAt: string;
+  privacyRestricted?: boolean;
+  payloadRestricted?: boolean;
 };
 
 export function OperationsDashboard({ user }: { user: PublicAdminSession }) {
@@ -122,7 +126,7 @@ export function OperationsDashboard({ user }: { user: PublicAdminSession }) {
     setMessage("Menyimpan...");
     const response = await fetch(`/api/admin/requests/${selected.id}`, {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "Idempotency-Key": crypto.randomUUID() },
       body: JSON.stringify(data),
     });
     const payload = await response.json();
@@ -141,7 +145,7 @@ export function OperationsDashboard({ user }: { user: PublicAdminSession }) {
     setMessage("Mengirim pesan...");
     const response = await fetch(`/api/admin/requests/${selected.id}/messages`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "Idempotency-Key": crypto.randomUUID() },
       body: JSON.stringify(data),
     });
     const payload = await response.json();
@@ -158,7 +162,7 @@ export function OperationsDashboard({ user }: { user: PublicAdminSession }) {
     setMessage("Memperbarui kontribusi...");
     const response = await fetch(`/api/admin/submissions/${item.id}`, {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "Idempotency-Key": crypto.randomUUID() },
       body: JSON.stringify({ status, reviewNote }),
     });
     const payload = await response.json();
@@ -194,11 +198,11 @@ export function OperationsDashboard({ user }: { user: PublicAdminSession }) {
         <section className="admin-panel"><div className="admin-panel-header"><div><h2>Antrean surat</h2><p>Klik pengajuan untuk membuka detail.</p></div><select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}><option value="all">Semua status</option>{REQUEST_STATUSES.map((status) => <option key={status} value={status}>{REQUEST_STATUS_LABELS[status]}</option>)}</select></div><div className="portal-list">{filteredRequests.map((item) => <button className={`portal-list-item operation-list-button ${selected?.id === item.id ? "selected" : ""}`} key={item.id} onClick={() => void openRequest(item.id)}><div><strong>{item.requestNumber}</strong><span>{item.applicantName} · {item.citizenEmail}</span></div><div><span className={`workflow-badge ${item.status}`}>{REQUEST_STATUS_LABELS[item.status]}</span><small>{new Date(item.updatedAt).toLocaleString("id-ID")}</small></div></button>)}</div></section>
         <section className="admin-panel operation-detail">{selected ? <>
           <div className="admin-panel-header"><div><span className={`workflow-badge ${selected.status}`}>{REQUEST_STATUS_LABELS[selected.status]}</span><h2>{selected.requestNumber}</h2><p>{selected.applicantName} · {selected.citizenEmail}</p></div></div>
-          {selected.sensitiveDataMasked ? <div className="notice compact"><div><strong>Data sensitif dimasking</strong><p>Role Anda tidak memiliki izin melihat NIK/KK lengkap.</p></div></div> : null}
-          <dl className="detail-grid"><div><dt>NIK</dt><dd>{selected.identityNumber}</dd></div><div><dt>Nomor KK</dt><dd>{selected.familyCardNumber || "Tidak diisi"}</dd></div><div><dt>WhatsApp</dt><dd>{selected.phone}</dd></div><div className="full"><dt>Alamat</dt><dd>{selected.address}</dd></div><div><dt>Nama usaha</dt><dd>{selected.formData.businessName}</dd></div><div><dt>Jenis usaha</dt><dd>{selected.formData.businessType}</dd></div><div className="full"><dt>Alamat usaha</dt><dd>{selected.formData.businessAddress}</dd></div><div className="full"><dt>Keperluan</dt><dd>{selected.formData.purpose}</dd></div></dl>
+          {selected.privacyRestricted ? <div className="notice compact"><div><strong>Mode privasi minimum</strong><p>Identitas, kontak, alamat, pesan, dan catatan warga disembunyikan untuk role ini.</p></div></div> : selected.sensitiveDataMasked ? <div className="notice compact"><div><strong>Data sensitif dimasking</strong><p>Role Anda tidak memiliki izin melihat NIK/KK lengkap.</p></div></div> : null}
+          <dl className="detail-grid">{!selected.privacyRestricted ? <><div><dt>NIK</dt><dd>{selected.identityNumber}</dd></div><div><dt>Nomor KK</dt><dd>{selected.familyCardNumber || "Tidak diisi"}</dd></div><div><dt>WhatsApp</dt><dd>{selected.phone}</dd></div><div className="full"><dt>Alamat</dt><dd>{selected.address}</dd></div></> : null}<div><dt>Nama usaha</dt><dd>{selected.formData.businessName}</dd></div><div><dt>Jenis usaha</dt><dd>{selected.formData.businessType}</dd></div><div className="full"><dt>Alamat usaha</dt><dd>{selected.formData.businessAddress}</dd></div><div className="full"><dt>Keperluan</dt><dd>{selected.formData.purpose}</dd></div></dl>
           {canEditRequests ? <form className="portal-form" onSubmit={saveRequest}><div className="portal-form-grid"><div className="field"><label>Status</label><select name="status" defaultValue={selected.status}>{REQUEST_STATUSES.map((status) => <option key={status} value={status}>{REQUEST_STATUS_LABELS[status]}</option>)}</select></div><div className="field"><label>Petugas penanggung jawab</label><input name="assignedTo" defaultValue={selected.assignedTo} /></div><div className="field full"><label>Catatan petugas untuk warga</label><textarea name="staffNote" defaultValue={selected.staffNote} rows={3} /></div></div><button className="button button-primary" type="submit">Simpan status</button></form> : null}
-          <div className="message-thread staff-thread">{selected.messages.map((item) => <article key={item.id} className={`message-bubble ${item.senderType} ${item.isInternal ? "internal" : ""}`}><strong>{item.senderLabel}{item.isInternal ? " · Catatan internal" : ""}</strong><p>{item.message}</p><small>{new Date(item.createdAt).toLocaleString("id-ID")}</small></article>)}</div>
-          {canMessage ? <form className="message-form" onSubmit={sendMessage}><textarea name="message" required minLength={2} rows={3} placeholder="Tulis pesan atau catatan internal..." /><label className="checkbox-field"><input type="checkbox" name="isInternal" value="true" /> Hanya terlihat petugas</label><button className="button button-primary" type="submit"><Send size={16} /> Kirim</button></form> : null}
+          {!selected.privacyRestricted ? <div className="message-thread staff-thread">{selected.messages.map((item) => <article key={item.id} className={`message-bubble ${item.senderType} ${item.isInternal ? "internal" : ""}`}><strong>{item.senderLabel}{item.isInternal ? " · Catatan internal" : ""}</strong><p>{item.message}</p><small>{new Date(item.createdAt).toLocaleString("id-ID")}</small></article>)}</div> : null}
+          {canMessage && !selected.privacyRestricted ? <form className="message-form" onSubmit={sendMessage}><textarea name="message" required minLength={2} rows={3} placeholder="Tulis pesan atau catatan internal..." /><label className="checkbox-field"><input type="checkbox" name="isInternal" value="true" /> Hanya terlihat petugas</label><button className="button button-primary" type="submit"><Send size={16} /> Kirim</button></form> : null}
         </> : <div className="empty-state">Pilih salah satu pengajuan untuk melihat detail.</div>}</section>
       </div> : null}
 
@@ -210,5 +214,5 @@ export function OperationsDashboard({ user }: { user: PublicAdminSession }) {
 function SubmissionReview({ item, canEdit, onSave }: { item: Submission; canEdit: boolean; onSave: (item: Submission, status: SubmissionStatus, note: string) => Promise<void> }) {
   const [status, setStatus] = useState<SubmissionStatus>(item.status);
   const [note, setNote] = useState(item.reviewNote);
-  return <details className="admin-item"><summary className="admin-item-summary"><div><span className={`workflow-badge ${item.status}`}>{SUBMISSION_STATUS_LABELS[item.status]}</span><h3>{item.title}</h3><p>{item.submissionNumber} · {CONTRIBUTION_TYPE_LABELS[item.type]} · {item.citizenName}</p></div></summary><div className="admin-form-box"><dl className="detail-grid">{Object.entries(item.payload).map(([key, value]) => <div key={key} className={String(value).length > 80 ? "full" : ""}><dt>{key}</dt><dd>{typeof value === "boolean" ? value ? "Ya" : "Tidak" : String(value ?? "-")}</dd></div>)}</dl><div className="portal-form-grid"><div className="field"><label>Status</label><select value={status} disabled={!canEdit} onChange={(e) => setStatus(e.target.value as SubmissionStatus)}>{SUBMISSION_STATUSES.map((value) => <option key={value} value={value}>{SUBMISSION_STATUS_LABELS[value]}</option>)}</select></div><div className="field full"><label>Catatan untuk warga</label><textarea value={note} disabled={!canEdit} onChange={(e) => setNote(e.target.value)} rows={3} /></div></div>{canEdit ? <button className="button button-primary" type="button" onClick={() => void onSave(item, status, note)}>Simpan moderasi</button> : <p><small>Mode baca saja.</small></p>}</div></details>;
+  return <details className="admin-item"><summary className="admin-item-summary"><div><span className={`workflow-badge ${item.status}`}>{SUBMISSION_STATUS_LABELS[item.status]}</span><h3>{item.title}</h3><p>{item.submissionNumber} · {CONTRIBUTION_TYPE_LABELS[item.type]} · {item.citizenName}</p></div></summary><div className="admin-form-box">{item.payloadRestricted ? <div className="notice compact"><div><strong>Payload disembunyikan</strong><p>Role auditor hanya menerima metadata transaksi.</p></div></div> : null}<dl className="detail-grid">{Object.entries(item.payload).map(([key, value]) => <div key={key} className={String(value).length > 80 ? "full" : ""}><dt>{key}</dt><dd>{typeof value === "boolean" ? value ? "Ya" : "Tidak" : String(value ?? "-")}</dd></div>)}</dl><div className="portal-form-grid"><div className="field"><label>Status</label><select value={status} disabled={!canEdit} onChange={(e) => setStatus(e.target.value as SubmissionStatus)}>{SUBMISSION_STATUSES.map((value) => <option key={value} value={value}>{SUBMISSION_STATUS_LABELS[value]}</option>)}</select></div><div className="field full"><label>Catatan untuk warga</label><textarea value={note} disabled={!canEdit} onChange={(e) => setNote(e.target.value)} rows={3} /></div></div>{canEdit ? <button className="button button-primary" type="button" onClick={() => void onSave(item, status, note)}>Simpan moderasi</button> : <p><small>Mode baca saja.</small></p>}</div></details>;
 }

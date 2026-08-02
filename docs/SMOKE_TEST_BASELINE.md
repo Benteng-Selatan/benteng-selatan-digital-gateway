@@ -1,5 +1,3 @@
-Tempel isi berikut ke `docs/SMOKE_TEST_BASELINE.md`:
-
 ````markdown
 # Smoke Test Baseline MVP
 
