@@ -1,5 +1,3 @@
-Tempel isi berikut ke `docs/BACKUP_RESTORE.md`:
-
 ````markdown
 # Prosedur Backup dan Restore Database
 

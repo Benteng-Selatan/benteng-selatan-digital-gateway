@@ -13,14 +13,14 @@
 - [x] Alur status, riwayat, pesan warga–petugas, serta catatan internal.
 - [x] Pengajuan UMKM, Kabar/kegiatan, dan lokasi peta.
 - [x] Moderasi petugas dan publikasi kontribusi ke CMS.
-- [x] Build, TypeScript, dan ESLint valid.
+- [ ] Build, TypeScript, dan ESLint v0.5.0 wajib dijalankan ulang pada mesin integrasi.
 
 ## Wajib dilakukan sebelum aktivasi production
 
 - [ ] Backup database Neon.
 - [ ] Tambahkan `CITIZEN_SESSION_SECRET` pada Vercel Production.
 - [ ] Tambahkan `CITIZEN_DATA_ENCRYPTION_KEY` pada Vercel Production.
-- [ ] Jalankan `npm run db:push` pada database yang sama dengan production.
+- [ ] Jalankan `npm run db:migrate-v050` pada Development dan Preview; Production hanya setelah backup dan persetujuan eksplisit.
 - [ ] Deploy ulang dan lakukan smoke test.
 - [ ] Tetapkan SOP verifikasi identitas dan dokumen fisik.
 - [ ] Tetapkan petugas penanggung jawab operasional.
@@ -29,9 +29,9 @@
 
 - [ ] Google Login atau magic link.
 - [ ] Email/WhatsApp notification.
-- [ ] Penyimpanan dokumen privat.
+- [x] Penyimpanan gambar kontribusi privat sebelum moderasi.
 - [ ] Google Docs untuk template surat.
 - [ ] Google Sheets untuk rekap laporan.
 - [ ] Tanda tangan elektronik.
-- [ ] Multi-user petugas dan role-based access control.
-- [ ] Rate limiting persisten dan audit akses sensitif.
+- [x] Multi-user petugas dan role-based access control.
+- [x] Rate limiting persisten, idempotency, dan audit akses/tindakan penting.

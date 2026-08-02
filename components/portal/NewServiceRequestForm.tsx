@@ -11,7 +11,7 @@ export function NewServiceRequestForm({ citizen }: { citizen: PublicCitizen }) {
     event.preventDefault(); setLoading(true); setMessage("");
     try {
       const payload = Object.fromEntries(new FormData(event.currentTarget).entries());
-      const response = await fetch("/api/citizen/requests", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+      const response = await fetch("/api/citizen/requests", { method: "POST", headers: { "Content-Type": "application/json", "Idempotency-Key": crypto.randomUUID() }, body: JSON.stringify(payload) });
       const result = await response.json() as { message?: string; result?: { id: string } };
       if (!response.ok || !result.result) throw new Error(result.message || "Pengajuan gagal.");
       window.location.href = `/warga/pengajuan/${result.result.id}`;

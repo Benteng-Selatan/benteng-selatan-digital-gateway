@@ -45,6 +45,7 @@ export default async function HomePage() {
   const quickLinks = [
     { href: "/layanan", label: "Layanan Publik", description: "Daftar layanan dan akses BESTI", icon: FileText },
     { href: "/kesejahteraan", label: "Kesejahteraan Sosial", description: "Persentase bantuan dan desil", icon: HeartHandshake },
+    { href: "/kependudukan", label: "Data Kependudukan", description: "Ringkasan penduduk per RW", icon: Users },
     { href: "/umkm", label: "UMKM Lokal", description: "Direktori usaha dan produk", icon: Store },
     { href: "/peta", label: "Peta Digital", description: "Fasilitas dan potensi wilayah", icon: MapPinned },
     { href: "/kontak", label: "Kontak Kelurahan", description: "Kanal informasi resmi", icon: Building2 }
@@ -145,21 +146,23 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section className="section section-dark">
-        <div className="container social-preview">
-          <div>
-            <span className="eyebrow light">Kesejahteraan Sosial</span>
-            <h2>Persentase bantuan dan desil dalam data agregat.</h2>
-            <p>{data.socialContent.intro}</p>
-            <Link href="/kesejahteraan" className="button button-light">Lihat informasi sosial <ArrowRight size={18} /></Link>
+      {social.status === "published" ? (
+        <section className="section section-dark">
+          <div className="container social-preview">
+            <div>
+              <span className="eyebrow light">Kesejahteraan Sosial</span>
+              <h2>Persentase bantuan dan desil dalam data agregat.</h2>
+              <p>{data.socialContent.intro}</p>
+              <Link href="/kesejahteraan" className="button button-light">Lihat informasi sosial <ArrowRight size={18} /></Link>
+            </div>
+            <div className="social-preview-stats">
+              <article><strong>{formatPercentage(social.pbiJk.yes, social.totalRecords)}</strong><span>Penerima PBI-JK</span><small>{social.pbiJk.period}</small></article>
+              <article><strong>{formatPercentage(socialTotals.pkhRecipients, social.totalRecords)}</strong><span>Terdata PKH</span><small>{social.pkh.period}</small></article>
+              <article><strong>{formatPercentage(socialTotals.sembakoRecipients, social.totalRecords)}</strong><span>Terdata Sembako</span><small>{social.sembako.period}</small></article>
+            </div>
           </div>
-          <div className="social-preview-stats">
-            <article><strong>{formatPercentage(social.pbiJk.yes, social.totalRecords)}</strong><span>Penerima PBI-JK</span><small>{social.pbiJk.period}</small></article>
-            <article><strong>{formatPercentage(socialTotals.pkhRecipients, social.totalRecords)}</strong><span>Terdata PKH</span><small>{social.pkh.period}</small></article>
-            <article><strong>{formatPercentage(socialTotals.sembakoRecipients, social.totalRecords)}</strong><span>Terdata Sembako</span><small>{social.sembako.period}</small></article>
-          </div>
-        </div>
-      </section>
+        </section>
+      ) : null}
 
       <section className="section">
         <div className="container">

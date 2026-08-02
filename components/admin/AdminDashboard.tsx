@@ -14,17 +14,21 @@ import {
   Save,
   Store,
   Trash2,
-  UserRoundCog
+  UserRoundCog,
+  Users
 } from "lucide-react";
 import { ChangeEvent, ReactNode, useMemo, useState } from "react";
 import { AdminToolbar } from "@/components/admin/AdminToolbar";
 import type { PublicAdminSession } from "@/lib/auth";
 import { formatPercentage, socialDashboardTotals, validateSocialDashboard } from "@/lib/social-dashboard";
+import { validatePopulationDashboard } from "@/lib/population-dashboard";
 import { STORY_CATEGORIES, STORY_TYPES } from "@/lib/types";
 import type {
   ContactData,
   ContactPerson,
   MapLocation,
+  PopulationDashboard,
+  PopulationNeighborhood,
   ProfileData,
   PublishStatus,
   ServiceItem,
@@ -37,13 +41,14 @@ import type {
   UmkmItem
 } from "@/lib/types";
 
-type TabKey = "overview" | "identity" | "services" | "social" | "umkm" | "map" | "stories" | "contact";
+type TabKey = "overview" | "identity" | "services" | "social" | "population" | "umkm" | "map" | "stories" | "contact";
 
 const tabItems: { key: TabKey; label: string; icon: typeof LayoutDashboard }[] = [
   { key: "overview", label: "Ringkasan", icon: LayoutDashboard },
   { key: "identity", label: "Identitas & Profil", icon: Building2 },
   { key: "services", label: "Layanan Publik", icon: FileText },
   { key: "social", label: "Kesejahteraan", icon: HeartHandshake },
+  { key: "population", label: "Kependudukan", icon: Users },
   { key: "umkm", label: "UMKM", icon: Store },
   { key: "map", label: "Peta Digital", icon: MapPinned },
   { key: "stories", label: "Kabar", icon: Newspaper },
@@ -114,7 +119,7 @@ function ImageField({ value, onChange, label = "Gambar" }: { value: string; onCh
     const formData = new FormData();
     formData.append("file", file);
     try {
-      const response = await fetch("/api/cms/upload", { method: "POST", body: formData });
+      const response = await fetch("/api/cms/upload", { method: "POST", headers: { "Idempotency-Key": crypto.randomUUID() }, body: formData });
       const payload = await response.json() as { url?: string; message?: string };
       if (!response.ok || !payload.url) throw new Error(payload.message || "Upload gagal.");
       onChange(payload.url);
@@ -160,8 +165,9 @@ function ListPanel({ title, subtitle, status, onDelete, children }: {
   );
 }
 
-export function AdminDashboard({ initialData, user }: { initialData: SiteData; user: PublicAdminSession }) {
+export function AdminDashboard({ initialData, initialVersion, user }: { initialData: SiteData; initialVersion: number; user: PublicAdminSession }) {
   const [data, setData] = useState(initialData);
+  const [version, setVersion] = useState(initialVersion);
   const [tab, setTab] = useState<TabKey>("overview");
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState("Belum ada perubahan yang disimpan pada sesi ini.");
@@ -174,6 +180,7 @@ export function AdminDashboard({ initialData, user }: { initialData: SiteData; u
   }), [data]);
   const socialErrors = useMemo(() => validateSocialDashboard(data.socialDashboard), [data.socialDashboard]);
   const socialTotals = useMemo(() => socialDashboardTotals(data.socialDashboard), [data.socialDashboard]);
+  const populationErrors = useMemo(() => validatePopulationDashboard(data.populationDashboard), [data.populationDashboard]);
 
   function updateSite<K extends keyof SiteSettings>(key: K, value: SiteSettings[K]) { setData((current) => ({ ...current, site: { ...current.site, [key]: value } })); }
   function updateProfile<K extends keyof ProfileData>(key: K, value: ProfileData[K]) { setData((current) => ({ ...current, profile: { ...current.profile, [key]: value } })); }
@@ -185,6 +192,10 @@ export function AdminDashboard({ initialData, user }: { initialData: SiteData; u
   function updatePkh<K extends keyof SocialDashboard["pkh"]>(key: K, value: SocialDashboard["pkh"][K]) { setData((current) => ({ ...current, socialDashboard: { ...current.socialDashboard, pkh: { ...current.socialDashboard.pkh, [key]: value } } })); }
   function updateSembako<K extends keyof SocialDashboard["sembako"]>(key: K, value: SocialDashboard["sembako"][K]) { setData((current) => ({ ...current, socialDashboard: { ...current.socialDashboard, sembako: { ...current.socialDashboard.sembako, [key]: value } } })); }
   function updateDecile<K extends keyof SocialDashboard["deciles"]>(key: K, value: SocialDashboard["deciles"][K]) { setData((current) => ({ ...current, socialDashboard: { ...current.socialDashboard, deciles: { ...current.socialDashboard.deciles, [key]: value } } })); }
+  function updatePopulation<K extends keyof PopulationDashboard>(key: K, value: PopulationDashboard[K]) { setData((current) => ({ ...current, populationDashboard: { ...current.populationDashboard, [key]: value } })); }
+  function updateAgeGroup(index: number, patch: Partial<PopulationDashboard["ageGroups"][number]>) { setData((current) => ({ ...current, populationDashboard: { ...current.populationDashboard, ageGroups: current.populationDashboard.ageGroups.map((item, itemIndex) => itemIndex === index ? { ...item, ...patch } : item) } })); }
+  function updateNeighborhood(index: number, patch: Partial<PopulationNeighborhood>) { setData((current) => ({ ...current, populationDashboard: { ...current.populationDashboard, neighborhoods: current.populationDashboard.neighborhoods.map((item, itemIndex) => itemIndex === index ? { ...item, ...patch } : item) } })); }
+
   function updateService(index: number, patch: Partial<ServiceItem>) { setData((current) => ({ ...current, services: current.services.map((item, itemIndex) => itemIndex === index ? { ...item, ...patch } : item) })); }
   function updateUmkm(index: number, patch: Partial<UmkmItem>) { setData((current) => ({ ...current, umkm: current.umkm.map((item, itemIndex) => itemIndex === index ? { ...item, ...patch } : item) })); }
   function updateMap(index: number, patch: Partial<MapLocation>) { setData((current) => ({ ...current, mapLocations: current.mapLocations.map((item, itemIndex) => itemIndex === index ? { ...item, ...patch } : item) })); }
@@ -196,14 +207,20 @@ export function AdminDashboard({ initialData, user }: { initialData: SiteData; u
       setSaveStatus(`Data kesejahteraan belum valid: ${socialErrors[0]}`);
       return;
     }
+    if (data.populationDashboard.status === "published" && populationErrors.length) {
+      setTab("population");
+      setSaveStatus(`Data kependudukan belum valid: ${populationErrors[0]}`);
+      return;
+    }
     setSaving(true);
     setSaveStatus("Menyimpan perubahan...");
     try {
-      const response = await fetch("/api/cms/content", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
-      const payload = await response.json() as { data?: SiteData; message?: string };
-      if (!response.ok || !payload.data) throw new Error(payload.message || "Gagal menyimpan data.");
+      const response = await fetch("/api/cms/content", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ data, expectedVersion: version }) });
+      const payload = await response.json() as { data?: SiteData; version?: number; message?: string; errors?: string[] };
+      if (!response.ok || !payload.data || !payload.version) throw new Error(payload.errors?.[0] || payload.message || "Gagal menyimpan data.");
       setData(payload.data);
-      setSaveStatus(`Tersimpan pada ${new Date(payload.data.updatedAt).toLocaleString("id-ID")}.`);
+      setVersion(payload.version);
+      setSaveStatus(`Tersimpan pada ${new Date(payload.data.updatedAt).toLocaleString("id-ID")} · revisi ${payload.version}.`);
     } catch (reason) {
       setSaveStatus(reason instanceof Error ? reason.message : "Gagal menyimpan data.");
     } finally {
@@ -312,6 +329,43 @@ export function AdminDashboard({ initialData, user }: { initialData: SiteData; u
               <Textarea label="Keterangan data" value={data.socialContent.privacyNote} onChange={(value) => updateSocialContent("privacyNote", value)} />
               <Textarea label="Rekomendasi umum" value={data.socialContent.recommendations.join("\n")} onChange={(value) => updateSocialContent("recommendations", lines(value))} />
               <Input label="Rujukan layanan sosial" value={data.socialContent.referralContact} onChange={(value) => updateSocialContent("referralContact", value)} />
+            </div></section>
+          </> : null}
+
+          {tab === "population" ? <>
+            <section className="admin-panel"><div className="admin-panel-header"><div><h2>Dashboard kependudukan</h2><p>Data awal merupakan dummy dan tetap berstatus draft sampai diganti dengan data resmi yang telah diverifikasi.</p></div></div>
+              <div className="admin-grid">
+                <Input label="Total penduduk" type="number" value={data.populationDashboard.totalPopulation} onChange={(value) => updatePopulation("totalPopulation", Number(value) || 0)} />
+                <Input label="Laki-laki" type="number" value={data.populationDashboard.male} onChange={(value) => updatePopulation("male", Number(value) || 0)} />
+                <Input label="Perempuan" type="number" value={data.populationDashboard.female} onChange={(value) => updatePopulation("female", Number(value) || 0)} />
+                <Input label="Kepala keluarga" type="number" value={data.populationDashboard.households} onChange={(value) => updatePopulation("households", Number(value) || 0)} />
+                <Input label="Total RT" type="number" value={data.populationDashboard.totalRt} onChange={(value) => updatePopulation("totalRt", Number(value) || 0)} />
+                <Input label="Total RW" type="number" value={data.populationDashboard.totalRw} onChange={(value) => updatePopulation("totalRw", Number(value) || 0)} />
+                <Input label="Periode" value={data.populationDashboard.period} onChange={(value) => updatePopulation("period", value)} />
+                <Input label="Sumber data" value={data.populationDashboard.source} onChange={(value) => updatePopulation("source", value)} />
+                <SelectStatus value={data.populationDashboard.status} onChange={(value) => updatePopulation("status", value)} />
+                <div className="field"><label>Status data</label><label className="checkbox-field"><input type="checkbox" checked={data.populationDashboard.isSimulation} onChange={(event) => updatePopulation("isSimulation", event.target.checked)} /> Data masih berupa simulasi/dummy</label><small>Data simulasi tidak dapat diterbitkan.</small></div>
+                <Textarea label="Catatan data" value={data.populationDashboard.note} onChange={(value) => updatePopulation("note", value)} />
+              </div>
+              <div className={`notice compact ${populationErrors.length ? "warning" : "success"}`}><div><strong>{populationErrors.length ? "Periksa konsistensi data" : "Seluruh jumlah konsisten"}</strong>{populationErrors.length ? <ul className="check-list population-validation-list">{populationErrors.map((error) => <li key={error}>{error}</li>)}</ul> : <p>Total jenis kelamin, kelompok usia, dan seluruh RW sudah sesuai dengan ringkasan.</p>}</div></div>
+            </section>
+
+            <section className="admin-panel"><div className="admin-panel-header"><div><h2>Kelompok usia</h2><p>Nilai seluruh kelompok harus sama dengan total penduduk.</p></div></div><div className="admin-grid five-column-grid">
+              {data.populationDashboard.ageGroups.map((item, index) => <div className="admin-form-box" key={item.id}><Input label="Label" value={item.label} onChange={(value) => updateAgeGroup(index, { label: value })} /><Input label="Jumlah" type="number" value={item.value} onChange={(value) => updateAgeGroup(index, { value: Number(value) || 0 })} /></div>)}
+            </div></section>
+
+            <section className="admin-panel"><div className="admin-panel-header"><div><h2>Data per RW</h2><p>Kolom kategori merupakan kategori jumlah penduduk, bukan kepadatan jiwa per km².</p></div></div><div className="population-table-scroll">
+              <table className="population-admin-table"><thead><tr><th>RW</th><th>RT</th><th>Laki-laki</th><th>Perempuan</th><th>Total</th><th>KK</th><th>Kategori</th></tr></thead><tbody>
+                {data.populationDashboard.neighborhoods.map((row, index) => <tr key={row.id}>
+                  <td><input className="rw-input" value={row.rw} onChange={(event) => updateNeighborhood(index, { rw: event.target.value })} /></td>
+                  <td><input type="number" value={row.rt} onChange={(event) => updateNeighborhood(index, { rt: Number(event.target.value) || 0 })} /></td>
+                  <td><input type="number" value={row.male} onChange={(event) => updateNeighborhood(index, { male: Number(event.target.value) || 0, total: (Number(event.target.value) || 0) + row.female })} /></td>
+                  <td><input type="number" value={row.female} onChange={(event) => updateNeighborhood(index, { female: Number(event.target.value) || 0, total: row.male + (Number(event.target.value) || 0) })} /></td>
+                  <td><input type="number" value={row.total} onChange={(event) => updateNeighborhood(index, { total: Number(event.target.value) || 0 })} /></td>
+                  <td><input type="number" value={row.households} onChange={(event) => updateNeighborhood(index, { households: Number(event.target.value) || 0 })} /></td>
+                  <td><input value={row.populationCategory} onChange={(event) => updateNeighborhood(index, { populationCategory: event.target.value })} /></td>
+                </tr>)}
+              </tbody></table>
             </div></section>
           </> : null}
 

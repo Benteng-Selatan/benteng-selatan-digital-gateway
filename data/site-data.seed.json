@@ -223,7 +223,7 @@
       "description": "Penerima PBI-JK berdasarkan rekap Agustus 2025.",
       "year": "2025",
       "source": "Rekap Data Kesejahteraan Kelurahan Benteng Selatan",
-      "status": "published"
+      "status": "draft"
     },
     {
       "id": "sosial-pkh",
@@ -232,7 +232,7 @@
       "description": "Gabungan kategori keluarga dan pengurus PKH periode Juli–September 2025.",
       "year": "2025",
       "source": "Rekap Data Kesejahteraan Kelurahan Benteng Selatan",
-      "status": "published"
+      "status": "draft"
     },
     {
       "id": "sosial-sembako",
@@ -241,7 +241,7 @@
       "description": "Gabungan kategori keluarga dan pengurus Sembako periode Juli–September 2025.",
       "year": "2025",
       "source": "Rekap Data Kesejahteraan Kelurahan Benteng Selatan",
-      "status": "published"
+      "status": "draft"
     }
   ],
   "socialContent": {
@@ -361,8 +361,8 @@
     "totalRecords": 2838,
     "period": "Juli–September 2025",
     "source": "Rekap Data Kesejahteraan Kelurahan Benteng Selatan",
-    "note": "PBI-JK menggunakan data Agustus 2025. PKH dan Sembako menggunakan data Juli–September 2025. Data ditampilkan secara agregat.",
-    "status": "published",
+    "note": "Data awal bawaan aplikasi. Wajib diverifikasi ulang sebelum dipublikasikan. PBI-JK menggunakan data Agustus 2025. PKH dan Sembako menggunakan data Juli–September 2025. Data ditampilkan secara agregat.",
+    "status": "draft",
     "pbiJk": {
       "yes": 1634,
       "no": 1204,
@@ -387,5 +387,167 @@
       "d4": 608,
       "d5": 650
     }
+  },
+  "populationDashboard": {
+    "status": "draft",
+    "period": "Data simulasi",
+    "source": "Data dummy untuk pratinjau fitur",
+    "note": "Data ini hanya untuk pratinjau tampilan dan tidak boleh dipublikasikan sebelum diganti dengan data resmi yang telah diverifikasi.",
+    "isSimulation": true,
+    "totalPopulation": 6088,
+    "male": 2580,
+    "female": 3508,
+    "households": 2018,
+    "totalRt": 30,
+    "totalRw": 12,
+    "ageGroups": [
+      {
+        "id": "usia-0-14",
+        "label": "0–14 tahun",
+        "value": 1420
+      },
+      {
+        "id": "usia-15-24",
+        "label": "15–24 tahun",
+        "value": 1110
+      },
+      {
+        "id": "usia-25-44",
+        "label": "25–44 tahun",
+        "value": 2300
+      },
+      {
+        "id": "usia-45-64",
+        "label": "45–64 tahun",
+        "value": 860
+      },
+      {
+        "id": "usia-65-plus",
+        "label": "65+ tahun",
+        "value": 398
+      }
+    ],
+    "neighborhoods": [
+      {
+        "id": "rw-01",
+        "rw": "RW 01",
+        "rt": 3,
+        "male": 238,
+        "female": 322,
+        "total": 560,
+        "households": 202,
+        "populationCategory": "Tinggi"
+      },
+      {
+        "id": "rw-02",
+        "rw": "RW 02",
+        "rt": 3,
+        "male": 248,
+        "female": 336,
+        "total": 584,
+        "households": 210,
+        "populationCategory": "Tinggi"
+      },
+      {
+        "id": "rw-03",
+        "rw": "RW 03",
+        "rt": 3,
+        "male": 212,
+        "female": 288,
+        "total": 500,
+        "households": 180,
+        "populationCategory": "Tinggi"
+      },
+      {
+        "id": "rw-04",
+        "rw": "RW 04",
+        "rt": 3,
+        "male": 228,
+        "female": 310,
+        "total": 538,
+        "households": 194,
+        "populationCategory": "Tinggi"
+      },
+      {
+        "id": "rw-05",
+        "rw": "RW 05",
+        "rt": 3,
+        "male": 202,
+        "female": 274,
+        "total": 476,
+        "households": 172,
+        "populationCategory": "Tinggi"
+      },
+      {
+        "id": "rw-06",
+        "rw": "RW 06",
+        "rt": 3,
+        "male": 242,
+        "female": 328,
+        "total": 570,
+        "households": 204,
+        "populationCategory": "Tinggi"
+      },
+      {
+        "id": "rw-07",
+        "rw": "RW 07",
+        "rt": 2,
+        "male": 208,
+        "female": 282,
+        "total": 490,
+        "households": 146,
+        "populationCategory": "Sedang"
+      },
+      {
+        "id": "rw-08",
+        "rw": "RW 08",
+        "rt": 2,
+        "male": 218,
+        "female": 296,
+        "total": 514,
+        "households": 153,
+        "populationCategory": "Sedang"
+      },
+      {
+        "id": "rw-09",
+        "rw": "RW 09",
+        "rt": 2,
+        "male": 192,
+        "female": 261,
+        "total": 453,
+        "households": 135,
+        "populationCategory": "Sedang"
+      },
+      {
+        "id": "rw-10",
+        "rw": "RW 10",
+        "rt": 2,
+        "male": 202,
+        "female": 274,
+        "total": 476,
+        "households": 142,
+        "populationCategory": "Sedang"
+      },
+      {
+        "id": "rw-11",
+        "rw": "RW 11",
+        "rt": 2,
+        "male": 196,
+        "female": 266,
+        "total": 462,
+        "households": 138,
+        "populationCategory": "Sedang"
+      },
+      {
+        "id": "rw-12",
+        "rw": "RW 12",
+        "rt": 2,
+        "male": 194,
+        "female": 271,
+        "total": 465,
+        "households": 142,
+        "populationCategory": "Sedang"
+      }
+    ]
   }
 }

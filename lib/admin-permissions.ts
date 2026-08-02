@@ -51,7 +51,6 @@ const rolePermissions: Record<AdminRole, readonly AdminPermission[]> = {
   reviewer: [
     "operations:view",
     "requests:view",
-    "requests:sensitive",
     "submissions:view",
     "submissions:review",
   ],

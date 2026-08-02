@@ -16,7 +16,7 @@ export function NewContributionForm({ initialType }: { initialType: Contribution
     const data = new FormData();
     data.append("file", file);
     setMessage("Mengunggah gambar...");
-    const response = await fetch("/api/citizen/upload", { method: "POST", body: data });
+    const response = await fetch("/api/citizen/upload", { method: "POST", headers: { "Idempotency-Key": crypto.randomUUID() }, body: data });
     const result = await response.json();
     if (!response.ok) { setMessage(result.message || "Upload gagal."); return; }
     setImage(result.url);
@@ -31,7 +31,7 @@ export function NewContributionForm({ initialType }: { initialType: Contribution
     payload.type = type;
     payload.image = image;
     try {
-      const response = await fetch("/api/citizen/submissions", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+      const response = await fetch("/api/citizen/submissions", { method: "POST", headers: { "Content-Type": "application/json", "Idempotency-Key": crypto.randomUUID() }, body: JSON.stringify(payload) });
       const result = await response.json();
       if (!response.ok) throw new Error(result.message || "Pengajuan gagal.");
       window.location.href = "/warga";

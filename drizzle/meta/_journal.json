@@ -15,6 +15,13 @@
       "when": 1785060371423,
       "tag": "0001_staff_roles_audit",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1785697712739,
+      "tag": "0002_secure_population_mvp",
+      "breakpoints": true
     }
   ]
 }

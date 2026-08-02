@@ -10,6 +10,7 @@ const navigation = [
   ["Profil", "/profil"],
   ["Layanan", "/layanan"],
   ["Sosial", "/kesejahteraan"],
+  ["Kependudukan", "/kependudukan"],
   ["UMKM & Potensi", "/umkm"],
   ["Peta", "/peta"],
   ["Kabar", "/wisata"],

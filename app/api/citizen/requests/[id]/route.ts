@@ -6,5 +6,5 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
   const { id } = await params;
   const request = await getCitizenRequest(citizen.id, id);
   if (!request) return Response.json({ message: "Pengajuan tidak ditemukan." }, { status: 404 });
-  return Response.json({ request });
+  return Response.json({ request }, { headers: { "Cache-Control": "no-store" } });
 }
