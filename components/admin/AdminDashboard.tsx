@@ -63,6 +63,39 @@ function slugify(value: string): string {
   return value.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 }
 
+function uniqueUmkmSlug(
+  name: string,
+  items: UmkmItem[],
+  currentIndex: number
+): string {
+  const baseSlug =
+    slugify(name) ||
+    `umkm-${currentIndex + 1}`;
+
+  const existingSlugs = new Set(
+    items
+      .filter(
+        (_, index) =>
+          index !== currentIndex
+      )
+      .map(
+        (item) =>
+          slugify(item.slug || "")
+      )
+      .filter(Boolean)
+  );
+
+  let slug = baseSlug;
+  let suffix = 2;
+
+  while (existingSlugs.has(slug)) {
+    slug = `${baseSlug}-${suffix}`;
+    suffix += 1;
+  }
+
+  return slug;
+}
+
 function lines(value: string): string[] {
   return value.split("\n").map((item) => item.trim()).filter(Boolean);
 }
@@ -370,11 +403,76 @@ export function AdminDashboard({ initialData, initialVersion, user }: { initialD
           </> : null}
 
           {tab === "umkm" ? <section className="admin-panel"><div className="admin-panel-header"><div><h2>Direktori UMKM</h2><p>Kontak hanya ditampilkan jika opsi izin publikasi diaktifkan.</p></div><button type="button" className="button button-outline" onClick={addUmkm}><Plus size={17} /> Tambah UMKM</button></div><div className="admin-list">{data.umkm.map((item, index) => <ListPanel key={item.id} title={item.name} subtitle={`${item.category} · ${item.generalLocation}`} status={item.status} onDelete={() => setData((current) => ({ ...current, umkm: current.umkm.filter((_, itemIndex) => itemIndex !== index) }))}><div className="admin-grid">
-            <Input label="Nama usaha" value={item.name} onChange={(value) => updateUmkm(index, { name: value, slug: item.slug === "umkm-baru" ? slugify(value) : item.slug })} />
-            <Input label="Slug URL" value={item.slug} onChange={(value) => updateUmkm(index, { slug: slugify(value) })} />
-            <Input label="Kategori" value={item.category} onChange={(value) => updateUmkm(index, { category: value })} />
-            <Input label="Produk unggulan" value={item.featuredProduct} onChange={(value) => updateUmkm(index, { featuredProduct: value })} />
-            <Textarea label="Deskripsi" value={item.description} onChange={(value) => updateUmkm(index, { description: value })} />
+            <Input
+              label="Nama usaha"
+              value={item.name}
+              onChange={(value) =>
+                updateUmkm(index, {
+                  name: value,
+                  slug:
+                    item.status === "published" &&
+                    item.slug
+                      ? item.slug
+                      : uniqueUmkmSlug(
+                          value,
+                          data.umkm,
+                          index
+                        ),
+                })
+              }
+            />
+
+            <div className="field">
+              <label>Alamat profil</label>
+              <input
+                value={`/umkm/${
+                  item.slug ||
+                  uniqueUmkmSlug(
+                    item.name,
+                    data.umkm,
+                    index
+                  )
+                }`}
+                readOnly
+              />
+              <small>
+                Dibuat otomatis dari nama usaha.
+                Setelah diterbitkan, alamat
+                dipertahankan agar tautan lama
+                tidak rusak.
+              </small>
+            </div>
+
+            <Input
+              label="Kategori"
+              value={item.category}
+              onChange={(value) =>
+                updateUmkm(index, {
+                  category: value,
+                })
+              }
+            />
+
+            <Input
+              label="Produk unggulan"
+              value={item.featuredProduct}
+              onChange={(value) =>
+                updateUmkm(index, {
+                  featuredProduct: value,
+                })
+              }
+            />
+
+            <Textarea
+              label="Deskripsi"
+              value={item.description}
+              onChange={(value) =>
+                updateUmkm(index, {
+                  description: value,
+                })
+              }
+              help="Boleh dikosongkan saat Draft, tetapi wajib diisi sebelum diterbitkan."
+            />
             <Input label="Lokasi umum" value={item.generalLocation} onChange={(value) => updateUmkm(index, { generalLocation: value })} />
             <Input label="Kontak publik" value={item.publicContact} onChange={(value) => updateUmkm(index, { publicContact: value })} help="Nomor WhatsApp tanpa data sensitif lain." />
             <div className="field"><label>Izin kontak</label><label className="checkbox-field"><input type="checkbox" checked={item.contactApproved} onChange={(event) => updateUmkm(index, { contactApproved: event.target.checked })} /> Kontak telah disetujui untuk tampil</label></div>

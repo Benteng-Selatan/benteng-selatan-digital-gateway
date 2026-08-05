@@ -312,7 +312,42 @@ export function siteDataValidationErrors(value: unknown): string[] {
       if (!isRecord(item)) return errors.push(`umkm[${index}] harus berupa objek.`);
       validateId(errors, item.id, `umkm[${index}].id`); if (typeof item.id === "string") ids.push(item.id);
       validateSlug(errors, item.slug, `umkm[${index}].slug`); if (typeof item.slug === "string") slugs.push(item.slug);
-      for (const [key, max] of [["name",180],["category",100],["featuredProduct",180],["description",2500],["publicContact",80],["generalLocation",500]] as const) stringField(errors, item[key], `umkm[${index}].${key}`, { max, optional: key === "publicContact" });
+      for (
+        const [key, max] of [
+          ["name", 180],
+          ["category", 100],
+          ["featuredProduct", 180],
+          ["generalLocation", 500],
+        ] as const
+      ) {
+        stringField(
+          errors,
+          item[key],
+          `umkm[${index}].${key}`,
+          { max }
+        );
+      }
+
+      stringField(
+        errors,
+        item.description,
+        `umkm[${index}].description`,
+        {
+          max: 2500,
+          optional:
+            item.status !== "published",
+        }
+      );
+
+      stringField(
+        errors,
+        item.publicContact,
+        `umkm[${index}].publicContact`,
+        {
+          max: 80,
+          optional: true,
+        }
+      );
       validateUrl(errors, item.image, `umkm[${index}].image`, { image: true, hosts: IMAGE_HOSTS });
       validateUrl(errors, item.instagram, `umkm[${index}].instagram`, { optional: true, hosts: SOCIAL_HOSTS });
       validateUrl(errors, item.marketplace, `umkm[${index}].marketplace`, { optional: true, hosts: MARKETPLACE_HOSTS.length ? MARKETPLACE_HOSTS : EXTERNAL_HOSTS });

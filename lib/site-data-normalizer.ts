@@ -49,6 +49,50 @@ function normalizeCategory(category: string): string {
   return value || "Kegiatan Kelurahan";
 }
 
+function slugifyUmkm(value: string): string {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+}
+
+function normalizeUmkm(
+  items: SiteData["umkm"]
+): SiteData["umkm"] {
+  const usedSlugs = new Set<string>();
+
+  return items.map((item, index) => {
+    const existingSlug =
+      slugifyUmkm(item.slug || "");
+
+    const generatedSlug =
+      slugifyUmkm(item.name || "") ||
+      `umkm-${index + 1}`;
+
+    const baseSlug =
+      existingSlug &&
+      existingSlug !== "umkm-baru"
+        ? existingSlug
+        : generatedSlug;
+
+    let slug = baseSlug;
+    let suffix = 2;
+
+    while (usedSlugs.has(slug)) {
+      slug = `${baseSlug}-${suffix}`;
+      suffix += 1;
+    }
+
+    usedSlugs.add(slug);
+
+    return {
+      ...item,
+      slug,
+    };
+  });
+}
+
 function normalizeExternalUrl(value: string | undefined, fallback: string): string {
   try {
     const url = new URL(value || fallback);
@@ -280,6 +324,12 @@ export function normalizeSiteData(input: SiteData): SiteData {
     };
   });
 
+  const sourceUmkm = Array.isArray(candidate.umkm)
+    ? candidate.umkm
+    : defaultSiteData.umkm;
+
+  const umkm = normalizeUmkm(sourceUmkm);
+
   const sourceStories = candidate.stories || defaultSiteData.stories;
   const alreadyFeatured = sourceStories.some((story) => Boolean(story.featured));
   const fallbackDate = input.updatedAt?.slice(0, 10) || "";
@@ -313,6 +363,7 @@ export function normalizeSiteData(input: SiteData): SiteData {
     socialDashboard: dashboard,
     populationDashboard,
     mapLocations,
+    umkm,
     stories,
   };
 }
