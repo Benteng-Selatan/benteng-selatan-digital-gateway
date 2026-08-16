@@ -18,3 +18,4 @@ data/*.tmp
 .vercel
 
 tsconfig.tsbuildinfo
+backups/
